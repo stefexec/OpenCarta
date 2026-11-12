@@ -72,9 +72,9 @@ Sent by the app immediately after enabling notifications on `0x001c`. Triggers t
 
 ---
 
-### 3.2 Device Settings, Units, Presets, Vibration, LED Toggle & Low Power Mode (`0x11`, 12 bytes)
+### 3.2 Device Settings, Units, Presets, Vibration, LED Toggle, Low Power & Power Off (`0x11`, 12 bytes)
 
-Controls temperature unit (°C/°F), LED brightness, active heating preset (`1`–`5`), active LED preset (`1`–`5` or `0` for LEDs Off), vibration intensity (`20%`–`100%`), and Low Power Mode.
+Controls temperature unit (°C/°F), LED brightness, active heating preset (`1`–`5`), active LED preset (`1`–`5` or `0` for LEDs Off), vibration intensity (`20%`–`100%`), Low Power Mode, and Power Off.
 
 **Captured Examples:**
 - **Switch Heating Preset (`1` ↔ `2` ↔ `3`):**
@@ -96,12 +96,14 @@ Controls temperature unit (°C/°F), LED brightness, active heating preset (`1`�
 - **Toggle Low Power Mode (`Byte 4` & `Byte 10`, Frames 17480–17508):**
   - **Low Power Mode ON:** `11 0c 00 22 02 00 03 00 00 08 01 11` (`Byte 4 = 0x02` dims LED brightness to 20%; `Byte 10 = 0x01` enables Low Power Mode)
   - **Low Power Mode OFF:** `11 0c 00 22 08 00 03 00 00 08 00 11` (`Byte 4 = 0x08` restores 80% brightness; `Byte 10 = 0x00`)
+- **Power Off Device (`Byte 2 = 0xaf`, captured `btsnoop_hci_261112_223553.log`):**
+  - **Turn Off:** `11 0c af 22 08 00 01 05 00 06 00 11` (`Byte 2 = 0xaf` powers off the device while preserving current settings bytes)
 
 | Byte | Values Seen | Meaning |
 | :--- | :--- | :--- |
 | `0` | `0x11` | Opcode (`0x11`) |
 | `1` | `0x0c` | Total length (`12` bytes) |
-| `2` | `0x00` | Reserved (`0x00`) |
+| `2` | `0x00`, `0xaf` | **Power / Action Flag:** `0x00` = Normal settings update, `0xaf` = **Power Off** (parallels `0xcc` Byte 13 `0xaf` = Stop Session) |
 | `3` | `0x22`, `0x11` | **Temperature Unit:** `0x22` = **Celsius (°C)**, `0x11` = **Fahrenheit (°F)** |
 | `4` | `0x08`, `0x02` | **LED Brightness:** `0x02` = 20% (Low Power), `0x08` = 80% (reflected in low nibble of status `Byte 13`) |
 | `5` | `0x00` | Reserved (`0x00`) |

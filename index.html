@@ -198,6 +198,7 @@
         <input type="checkbox" id="acceptAllChk" /> Show all BLE devices
       </label>
       <button id="connectBtn" class="primary" onclick="toggleConnection()">Connect Carta</button>
+      <button id="powerOffBtn" class="danger" onclick="powerOffDevice()" title="Turn Carta off (0x11 byte 2 = 0xaf)">Power Off</button>
       <button id="syncBtn" onclick="sendTimeSync()" disabled>Sync Time / Dump</button>
     </div>
   </header>
@@ -758,9 +759,9 @@
       }
     }
 
-    async function send11Command() {
+    async function send11Command(powerFlag = 0x00) {
       const pkt = new Uint8Array([
-        0x11, 0x0c, 0x00,
+        0x11, 0x0c, powerFlag,
         state.unit,
         state.brightness,
         0x00,
@@ -771,7 +772,15 @@
         state.lowPower,
         0x11
       ]);
-      await writePacket(pkt, `Settings (unit=0x${state.unit.toString(16)}, P${state.heatPreset}, LED=${state.ledPreset}, vibe=${state.vibe*10}%, LP=${state.lowPower})`);
+      const label = powerFlag === 0xaf
+        ? 'POWER OFF (0xaf)'
+        : `Settings (unit=0x${state.unit.toString(16)}, P${state.heatPreset}, LED=${state.ledPreset}, vibe=${state.vibe*10}%, LP=${state.lowPower})`;
+      await writePacket(pkt, label);
+    }
+
+    async function powerOffDevice() {
+      if (!confirm('Power off the Carta V Sport?')) return;
+      await send11Command(0xaf);
     }
 
     function selectHeatPreset(slot) {
