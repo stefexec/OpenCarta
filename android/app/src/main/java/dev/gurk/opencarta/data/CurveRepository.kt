@@ -379,6 +379,7 @@ class CurveRepository(
         if (runner.running) {
             if (remSec == 0 && runner.phase == CurvePhase.ACTIVE) {
                 _runnerState.update { it.copy(running = false, phase = CurvePhase.IDLE) }
+                bleManager.sendCcCommand(actionByte = 0xAF, targetPresetSlot = 0x00)
                 return
             }
             if (remSec > 0) {
@@ -386,7 +387,7 @@ class CurveRepository(
                 val phase = if (elapsed > 0) CurvePhase.ACTIVE else CurvePhase.PREHEAT
                 val trace = (runner.liveTrace + TracePoint(elapsed, curTemp)).takeLast(300)
                 val desired = evalCurveTempUnit(elapsed, fahrenheit)
-                val sentTemp = if (desired != runner.lastSentTemp) {
+                val sentTemp = if (remSec > 1 && desired != runner.lastSentTemp) {
                     bleManager.sendCcCommand(
                         actionByte = 0x00,
                         targetPresetSlot = 0x00,

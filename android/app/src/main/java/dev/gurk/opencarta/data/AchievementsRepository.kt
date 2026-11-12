@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 
 data class Achievement(
@@ -44,7 +45,12 @@ class AchievementsRepository(
     val summary: StateFlow<AchievementsSummary> = _summary.asStateFlow()
 
     private var lastObservedAllTime: Int = prefs.getInt("last_all_time_dabs", 0)
-    private var lastObservedDaily: Int = prefs.getInt("last_daily_dabs", 0)
+    private var lastDailyDate: String? = prefs.getString("last_daily_date", null)
+    private var lastObservedDaily: Int = if (lastDailyDate == LocalDate.now().toString()) {
+        prefs.getInt("last_daily_dabs", 0)
+    } else {
+        0
+    }
     private var lastObservedMonthly: Int = prefs.getInt("last_monthly_dabs", 0)
     private var lastRemSec: Int = 0
 
@@ -52,21 +58,35 @@ class AchievementsRepository(
         recompute()
         scope.launch {
             bleManager.state.collect { s ->
-                // 0xaa counters: [0]=AllTime, [1]=Daily, [2]=Weekly/Sub, [3]=Monthly
+                // 0xaa counters: [0]=AllTime, [1]=Daily (UTC day on device), [2]=Weekly/Sub, [3]=Monthly
                 val devAllTime = s.dabCounter1.toInt()
                 val devDaily = s.dabCounter2.toInt()
                 val devMonthly = s.dabCounter4.toInt()
+                val localToday = LocalDate.now()
+                val utcToday = LocalDate.now(ZoneOffset.UTC)
+                val todayKey = localToday.toString()
+
+                if (lastDailyDate != todayKey) {
+                    lastDailyDate = todayKey
+                    lastObservedDaily = 0
+                    prefs.edit()
+                        .putString("last_daily_date", todayKey)
+                        .putInt("last_daily_dabs", 0)
+                        .apply()
+                }
 
                 if (devAllTime > 0 || devDaily > 0 || devMonthly > 0) {
                     if (devAllTime > lastObservedAllTime && lastObservedAllTime > 0) {
                         recordTodayActivity()
                     }
                     lastObservedAllTime = devAllTime
-                    lastObservedDaily = devDaily
+                    if (localToday == utcToday) {
+                        lastObservedDaily = devDaily
+                        prefs.edit().putInt("last_daily_dabs", devDaily).apply()
+                    }
                     lastObservedMonthly = devMonthly
                     prefs.edit()
                         .putInt("last_all_time_dabs", devAllTime)
-                        .putInt("last_daily_dabs", devDaily)
                         .putInt("last_monthly_dabs", devMonthly)
                         .apply()
                     recompute()
@@ -77,6 +97,18 @@ class AchievementsRepository(
             bleManager.telemetryTicks.collect { tick ->
                 if (lastRemSec > 0 && tick.remainingSec == 0) {
                     recordTodayActivity()
+                    if (LocalDate.now() != LocalDate.now(ZoneOffset.UTC)) {
+                        val todayKey = LocalDate.now().toString()
+                        if (lastDailyDate != todayKey) {
+                            lastDailyDate = todayKey
+                            lastObservedDaily = 0
+                        }
+                        lastObservedDaily += 1
+                        prefs.edit()
+                            .putString("last_daily_date", todayKey)
+                            .putInt("last_daily_dabs", lastObservedDaily)
+                            .apply()
+                    }
                     recompute()
                 }
                 lastRemSec = tick.remainingSec
@@ -114,8 +146,14 @@ class AchievementsRepository(
 
     private fun recompute() {
         val s = bleManager.state.value
+        val localToday = LocalDate.now()
+        val utcToday = LocalDate.now(ZoneOffset.UTC)
         val allTime = if (s.dabCounter1 > 0) s.dabCounter1.toInt() else lastObservedAllTime
-        val daily = if (s.isConnected && s.dabCounter1 > 0) s.dabCounter2.toInt() else lastObservedDaily
+        val daily = if (s.isConnected && s.dabCounter1 > 0 && localToday == utcToday) {
+            s.dabCounter2.toInt()
+        } else {
+            if (lastDailyDate == localToday.toString()) lastObservedDaily else 0
+        }
         val monthly = if (s.isConnected && s.dabCounter1 > 0) s.dabCounter4.toInt() else lastObservedMonthly
         val streak = computeStreakDays()
 

@@ -1,0 +1,3 @@
+- Explicitly stop session (0xAF) when a temperature curve finishes and avoid live temp updates on the final second
+- Fix daily dab counter around midnight (00:00–01:00 local time vs UTC device clock)
+- Updated README with screenshots and GitHub release links

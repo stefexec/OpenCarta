@@ -14,6 +14,7 @@ import org.json.JSONObject
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.YearMonth
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
@@ -164,8 +165,10 @@ class SessionHistoryRepository(
 
         scope.launch {
             bleManager.state.collect { s ->
-                if (s.isConnected && s.dabCounter2 > 0) {
-                    val today = LocalDate.now().toString()
+                val localToday = LocalDate.now()
+                val utcToday = LocalDate.now(ZoneOffset.UTC)
+                if (s.isConnected && s.dabCounter2 > 0 && localToday == utcToday) {
+                    val today = localToday.toString()
                     val daily = s.dabCounter2.toInt()
                     val cur = _history.value.dailyOverrides[today] ?: 0
                     if (daily != cur) {
