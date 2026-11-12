@@ -151,6 +151,39 @@
     .log-tx { color: #58a6ff; }
     .log-rx { color: #3fb950; }
     .log-info { color: #d29922; }
+    .curve-layout {
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 820px) {
+      .curve-layout { grid-template-columns: 1fr; }
+    }
+    canvas#curveCanvas {
+      width: 100%;
+      height: 240px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: block;
+    }
+    .pt-list {
+      max-height: 170px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      padding: 6px;
+      margin-bottom: 10px;
+    }
+    .pt-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .pt-row:last-child { margin-bottom: 0; }
   </style>
 </head>
 <body>
@@ -366,7 +399,43 @@
       </div>
     </div>
 
-    <!-- 5. PACKET INSPECTOR & RAW HEX -->
+    <!-- 5. TEMPERATURE CURVE STUDIO & LIVE GRAPH -->
+    <div class="card" style="grid-column: 1 / -1;">
+      <h2>
+        <span>Temperature Curve Studio &amp; Live Graph</span>
+        <span class="badge" id="curveStatusBadge">IDLE</span>
+      </h2>
+      <div class="curve-layout">
+        <div>
+          <canvas id="curveCanvas" width="700" height="240"></canvas>
+          <div class="sub" id="curveDescText" style="margin-top:8px;"></div>
+        </div>
+        <div>
+          <div class="row">
+            <label>Curve Preset:</label>
+            <select id="curvePresetSelect" onchange="onCurvePresetSelect()" style="flex:1;"></select>
+          </div>
+          <div class="row">
+            <label>Interpolation:</label>
+            <div class="btn-group">
+              <button id="interpSmoothBtn" class="active" onclick="setCurveInterp('smooth')">Smooth Ramp</button>
+              <button id="interpStepBtn" onclick="setCurveInterp('step')">Stepped</button>
+            </div>
+          </div>
+          <div class="pt-list" id="curvePointsList"></div>
+          <div class="row">
+            <button onclick="addCurvePoint()">+ Add Point</button>
+            <button onclick="saveCustomCurve()">Save Custom</button>
+            <div class="btn-group">
+              <button class="success" id="runCurveBtn" onclick="startCurveSession()" disabled>▶ Run Curve Sesh</button>
+              <button class="danger" id="stopCurveBtn" onclick="stopCurveSession()" disabled>■ Stop</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. PACKET INSPECTOR & RAW HEX -->
     <div class="card" style="grid-column: 1 / -1;">
       <h2>
         <span>BLE Packet Log & Raw Command Tester</span>
@@ -435,7 +504,7 @@
     }
 
     function setControlsEnabled(enabled) {
-      ['syncBtn', 'saveTempBtn', 'savePresetBtn', 'startSeshBtn', 'stopSeshBtn', 'timeoutBtn', 'renameBtn', 'applyLedBtn', 'rawSendBtn']
+      ['syncBtn', 'saveTempBtn', 'savePresetBtn', 'startSeshBtn', 'stopSeshBtn', 'timeoutBtn', 'renameBtn', 'applyLedBtn', 'rawSendBtn', 'runCurveBtn', 'stopCurveBtn']
         .forEach(id => {
           const el = document.getElementById(id);
           if (el) el.disabled = !enabled;
@@ -599,7 +668,11 @@
       const lowPower = b[17] & 0x0f;
       const standby = b[18];
 
+      const unitChanged = state.unit !== unitByte;
       state.unit = unitByte;
+      if (unitChanged) {
+        renderCurveEditor();
+      }
       state.heatPreset = rawPreset || state.heatPreset;
       state.ledPreset = ledPreset;
       state.brightness = ledBright || state.brightness;
@@ -645,6 +718,8 @@
       }
       document.getElementById('lpBtn0').classList.toggle('active', lowPower === 0);
       document.getElementById('lpBtn1').classList.toggle('active', lowPower === 1);
+
+      onStatus99ForCurve(curTemp, waxTemp, remSec);
     }
 
     function parsePresetTable(b) {
@@ -690,7 +765,11 @@
     }
 
     function setUnit(unitByte) {
+      const unitChanged = state.unit !== unitByte;
       state.unit = unitByte;
+      if (unitChanged) {
+        renderCurveEditor();
+      }
       send11Command();
     }
 
@@ -828,6 +907,382 @@
       }
       await writePacket(bytes, 'Raw Hex');
     }
+
+    // ==================== TEMPERATURE CURVE STUDIO & LIVE GRAPH ====================
+    const BUILTIN_CURVES = [
+      {
+        id: 'quartz_cooling',
+        name: 'Quartz Banger Cooling Curve (55s)',
+        mode: 'smooth',
+        desc: 'Simulates Newton\'s Law of Cooling on a preheated quartz banger: hot initial flash melt (285°C / 545°F) decaying smoothly down into the terpene sweet spot (215°C / 419°F).',
+        pointsC: [
+          { t: 0,  tempC: 285 },
+          { t: 8,  tempC: 268 },
+          { t: 18, tempC: 252 },
+          { t: 30, tempC: 238 },
+          { t: 42, tempC: 225 },
+          { t: 55, tempC: 215 }
+        ]
+      },
+      {
+        id: 'rosin_ladder',
+        name: 'Live Rosin Terpene Ladder (55s)',
+        mode: 'step',
+        desc: 'Ascending connoisseur steps: 215°C (Pinene/Myrcene/Limonene flavor), 230°C (mid-spectrum body), 245°C (clean cannabinoid finish without scorching lipids).',
+        pointsC: [
+          { t: 0,  tempC: 215 },
+          { t: 18, tempC: 230 },
+          { t: 38, tempC: 245 },
+          { t: 55, tempC: 245 }
+        ]
+      },
+      {
+        id: 'cold_start_ramp',
+        name: 'Cold-Start Smooth Ramp (55s)',
+        mode: 'smooth',
+        desc: 'Continuous ascending ramp (210°C → 250°C) that sweeps sequentially through every terpene boiling point like a cold-start torch pass.',
+        pointsC: [
+          { t: 0,  tempC: 210 },
+          { t: 20, tempC: 228 },
+          { t: 40, tempC: 242 },
+          { t: 55, tempC: 250 }
+        ]
+      },
+      {
+        id: 'resin_cloud',
+        name: 'Live Resin / BHO Flavor → Cloud (50s)',
+        mode: 'step',
+        desc: 'Starts at 235°C for bright hydrocarbon-extracted terps, steps to 255°C for dense vapor, and finishes at 270°C to clear the bowl.',
+        pointsC: [
+          { t: 0,  tempC: 235 },
+          { t: 15, tempC: 255 },
+          { t: 35, tempC: 270 },
+          { t: 50, tempC: 270 }
+        ]
+      },
+      {
+        id: 'flash_mellow',
+        name: 'Flash Melt → Mellow Finish (55s)',
+        mode: 'smooth',
+        desc: 'High initial energy (275°C) to rapidly melt bubble hash or larger dabs, then coasts down to 225°C for smooth backend pulls.',
+        pointsC: [
+          { t: 0,  tempC: 275 },
+          { t: 12, tempC: 252 },
+          { t: 30, tempC: 238 },
+          { t: 55, tempC: 225 }
+        ]
+      }
+    ];
+
+    let activeCurve = structuredClone(BUILTIN_CURVES[0]);
+    const curveRunner = {
+      running: false,
+      phase: 'IDLE', // IDLE | PREHEAT | ACTIVE
+      duration: 55,
+      elapsed: 0,
+      lastSentTemp: null,
+      liveTrace: [] // { t, temp }
+    };
+
+    function cToUnit(tempC) {
+      return state.unit === 0x11 ? Math.round(tempC * 9 / 5 + 32) : Math.round(tempC);
+    }
+
+    function unitToC(tempVal) {
+      return state.unit === 0x11 ? Math.round((tempVal - 32) * 5 / 9) : Math.round(tempVal);
+    }
+
+    function getAllCurves() {
+      let custom = [];
+      try {
+        custom = JSON.parse(localStorage.getItem('opencarta_custom_curves') || '[]');
+      } catch (_) {}
+      return [...BUILTIN_CURVES, ...custom];
+    }
+
+    function populateCurveDropdown(selectedId = activeCurve.id) {
+      const sel = document.getElementById('curvePresetSelect');
+      sel.innerHTML = '';
+      for (const c of getAllCurves()) {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.name;
+        if (c.id === selectedId) opt.selected = true;
+        sel.appendChild(opt);
+      }
+    }
+
+    function onCurvePresetSelect() {
+      const id = document.getElementById('curvePresetSelect').value;
+      const found = getAllCurves().find(c => c.id === id);
+      if (found) {
+        activeCurve = structuredClone(found);
+        renderCurveEditor();
+        drawCurveCanvas();
+      }
+    }
+
+    function setCurveInterp(mode) {
+      activeCurve.mode = mode;
+      document.getElementById('interpSmoothBtn').classList.toggle('active', mode === 'smooth');
+      document.getElementById('interpStepBtn').classList.toggle('active', mode === 'step');
+      drawCurveCanvas();
+    }
+
+    function renderCurveEditor() {
+      document.getElementById('curveDescText').textContent = activeCurve.desc || 'Custom temperature curve.';
+      document.getElementById('interpSmoothBtn').classList.toggle('active', activeCurve.mode === 'smooth');
+      document.getElementById('interpStepBtn').classList.toggle('active', activeCurve.mode === 'step');
+
+      const unitStr = state.unit === 0x11 ? '°F' : '°C';
+      const list = document.getElementById('curvePointsList');
+      list.innerHTML = '';
+      activeCurve.pointsC.sort((a, b) => a.t - b.t);
+      activeCurve.pointsC.forEach((pt, idx) => {
+        const row = document.createElement('div');
+        row.className = 'pt-row';
+        row.innerHTML = `
+          <span style="font-size:0.75rem;color:var(--muted);width:22px;">#${idx + 1}</span>
+          <input type="number" value="${pt.t}" min="0" max="120" style="width:68px;" onchange="updateCurvePoint(${idx}, 't', this.value)" />
+          <span style="font-size:0.8rem;color:var(--muted);">s →</span>
+          <input type="number" value="${cToUnit(pt.tempC)}" min="150" max="650" style="width:78px;" onchange="updateCurvePoint(${idx}, 'temp', this.value)" />
+          <span style="font-size:0.8rem;color:var(--muted);">${unitStr}</span>
+          <button onclick="removeCurvePoint(${idx})" style="padding:4px 8px;margin-left:auto;" ${activeCurve.pointsC.length <= 2 ? 'disabled' : ''}>✕</button>
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    function updateCurvePoint(idx, field, val) {
+      const n = Number(val);
+      if (Number.isNaN(n)) return;
+      if (field === 't') {
+        activeCurve.pointsC[idx].t = Math.max(0, Math.min(120, Math.round(n)));
+      } else {
+        activeCurve.pointsC[idx].tempC = Math.max(150, Math.min(340, unitToC(n)));
+      }
+      renderCurveEditor();
+      drawCurveCanvas();
+    }
+
+    function addCurvePoint() {
+      const pts = activeCurve.pointsC;
+      const last = pts[pts.length - 1];
+      pts.push({ t: Math.min(120, last.t + 10), tempC: last.tempC });
+      renderCurveEditor();
+      drawCurveCanvas();
+    }
+
+    function removeCurvePoint(idx) {
+      if (activeCurve.pointsC.length <= 2) return;
+      activeCurve.pointsC.splice(idx, 1);
+      renderCurveEditor();
+      drawCurveCanvas();
+    }
+
+    function saveCustomCurve() {
+      const name = prompt('Name for this custom curve:', activeCurve.name + ' (Custom)');
+      if (!name) return;
+      const custom = JSON.parse(localStorage.getItem('opencarta_custom_curves') || '[]');
+      const id = 'custom_' + Date.now();
+      const entry = {
+        id,
+        name: name.trim(),
+        mode: activeCurve.mode,
+        desc: 'User-created custom curve.',
+        pointsC: structuredClone(activeCurve.pointsC)
+      };
+      custom.push(entry);
+      localStorage.setItem('opencarta_custom_curves', JSON.stringify(custom));
+      activeCurve = structuredClone(entry);
+      populateCurveDropdown(id);
+      renderCurveEditor();
+      drawCurveCanvas();
+    }
+
+    function evalCurveTempUnit(elapsedSec) {
+      const pts = [...activeCurve.pointsC].sort((a, b) => a.t - b.t);
+      if (elapsedSec <= pts[0].t) return cToUnit(pts[0].tempC);
+      if (elapsedSec >= pts[pts.length - 1].t) return cToUnit(pts[pts.length - 1].tempC);
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i];
+        const b = pts[i + 1];
+        if (elapsedSec >= a.t && elapsedSec <= b.t) {
+          if (activeCurve.mode === 'step' || b.t === a.t) {
+            return cToUnit(a.tempC);
+          }
+          const frac = (elapsedSec - a.t) / (b.t - a.t);
+          return cToUnit(a.tempC + frac * (b.tempC - a.tempC));
+        }
+      }
+      return cToUnit(pts[pts.length - 1].tempC);
+    }
+
+    function getCurveDuration() {
+      const pts = activeCurve.pointsC;
+      return Math.max(10, Math.min(120, pts[pts.length - 1].t || 55));
+    }
+
+    async function startCurveSession() {
+      const duration = getCurveDuration();
+      const startTemp = evalCurveTempUnit(0);
+      curveRunner.running = true;
+      curveRunner.phase = 'PREHEAT';
+      curveRunner.duration = duration;
+      curveRunner.elapsed = 0;
+      curveRunner.lastSentTemp = startTemp;
+      curveRunner.liveTrace = [];
+
+      document.getElementById('waxTempInput').value = startTemp;
+      document.getElementById('waxTimerInput').value = duration;
+      updateCurveBadge();
+
+      // Start session with slot=0x00 so saved presets aren't overwritten
+      await sendCcCommand(0xa5, 0x00);
+      drawCurveCanvas();
+    }
+
+    async function stopCurveSession() {
+      curveRunner.running = false;
+      curveRunner.phase = 'IDLE';
+      updateCurveBadge();
+      await sendCcCommand(0xaf, 0x00);
+      drawCurveCanvas();
+    }
+
+    function updateCurveBadge() {
+      const badge = document.getElementById('curveStatusBadge');
+      if (!curveRunner.running) {
+        badge.textContent = 'IDLE';
+        badge.className = 'badge';
+      } else if (curveRunner.phase === 'PREHEAT') {
+        badge.textContent = 'PRE-HEATING TO START';
+        badge.className = 'badge heating';
+      } else {
+        badge.textContent = `RUNNING (${curveRunner.elapsed}s / ${curveRunner.duration}s)`;
+        badge.className = 'badge online';
+      }
+    }
+
+    async function onStatus99ForCurve(curTemp, tgtTemp, remSec) {
+      if (curveRunner.running) {
+        if (remSec === 0 && curveRunner.phase === 'ACTIVE') {
+          curveRunner.running = false;
+          curveRunner.phase = 'IDLE';
+          updateCurveBadge();
+          drawCurveCanvas();
+          return;
+        }
+        if (remSec > 0) {
+          const elapsed = Math.max(0, curveRunner.duration - remSec);
+          curveRunner.phase = elapsed > 0 ? 'ACTIVE' : 'PREHEAT';
+          curveRunner.elapsed = elapsed;
+          curveRunner.liveTrace.push({ t: elapsed, temp: curTemp });
+          if (curveRunner.liveTrace.length > 300) curveRunner.liveTrace.shift();
+
+          const desired = evalCurveTempUnit(elapsed);
+          if (desired !== curveRunner.lastSentTemp) {
+            curveRunner.lastSentTemp = desired;
+            document.getElementById('waxTempInput').value = desired;
+            await sendCcCommand(0x00, 0x00);
+          }
+          updateCurveBadge();
+        }
+      } else if (remSec > 0) {
+        // Also record live trace during manual sessions
+        const dur = Number(document.getElementById('waxTimerInput').value) || state.waxTimer || 55;
+        const elapsed = Math.max(0, dur - remSec);
+        curveRunner.elapsed = elapsed;
+        curveRunner.liveTrace.push({ t: elapsed, temp: curTemp });
+        if (curveRunner.liveTrace.length > 300) curveRunner.liveTrace.shift();
+      }
+      drawCurveCanvas();
+    }
+
+    function drawCurveCanvas() {
+      const canvas = document.getElementById('curveCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width;
+      const H = canvas.height;
+      const pad = { l: 46, r: 16, t: 18, b: 28 };
+      const pw = W - pad.l - pad.r;
+      const ph = H - pad.t - pad.b;
+
+      ctx.clearRect(0, 0, W, H);
+
+      const dur = getCurveDuration();
+      const unitStr = state.unit === 0x11 ? '°F' : '°C';
+      const minT = state.unit === 0x11 ? 300 : 150;
+      const maxT = state.unit === 0x11 ? 600 : 320;
+      const xOf = t => pad.l + (Math.min(dur, Math.max(0, t)) / dur) * pw;
+      const yOf = temp => pad.t + ph - ((Math.min(maxT, Math.max(minT, temp)) - minT) / (maxT - minT)) * ph;
+
+      // Grid lines
+      ctx.strokeStyle = '#21262d';
+      ctx.lineWidth = 1;
+      ctx.font = '11px monospace';
+      ctx.fillStyle = '#8b949e';
+      for (let i = 0; i <= 4; i++) {
+        const temp = Math.round(minT + (i / 4) * (maxT - minT));
+        const y = yOf(temp);
+        ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+        ctx.fillText(`${temp}${unitStr}`, 4, y + 4);
+      }
+      for (let t = 0; t <= dur; t += Math.max(10, Math.round(dur / 5 / 5) * 5)) {
+        const x = xOf(t);
+        ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, H - pad.b); ctx.stroke();
+        ctx.fillText(`${t}s`, x - 8, H - 8);
+      }
+
+      // Target curve (dashed blue)
+      ctx.save();
+      ctx.strokeStyle = '#58a6ff';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      for (let t = 0; t <= dur; t++) {
+        const x = xOf(t);
+        const y = yOf(evalCurveTempUnit(t));
+        if (t === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.restore();
+
+      // Breakpoint dots
+      ctx.fillStyle = '#58a6ff';
+      for (const pt of activeCurve.pointsC) {
+        ctx.beginPath();
+        ctx.arc(xOf(pt.t), yOf(cToUnit(pt.tempC)), 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Live atomizer temp trace (solid orange/red)
+      if (curveRunner.liveTrace.length > 1) {
+        ctx.strokeStyle = '#f85149';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        curveRunner.liveTrace.forEach((p, idx) => {
+          const x = xOf(p.t);
+          const y = yOf(p.temp);
+          if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      }
+
+      // Playhead
+      if (curveRunner.running) {
+        const px = xOf(curveRunner.elapsed);
+        ctx.strokeStyle = '#3fb950';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(px, pad.t); ctx.lineTo(px, H - pad.b); ctx.stroke();
+      }
+    }
+
+    // Initialize Curve Studio on load
+    populateCurveDropdown();
+    renderCurveEditor();
+    drawCurveCanvas();
   </script>
 </body>
 </html>
