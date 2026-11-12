@@ -1,23 +1,86 @@
-# OpenCarta
+<div align="center">
+  <img src="fastlane/metadata/android/en-US/images/icon.png" alt="OpenCarta Icon" width="112" height="112" />
+  <h1>OpenCarta</h1>
+  <p>
+    <strong>Open-source native Android &amp; Web Bluetooth controller for the Focus V Carta Sport</strong>
+  </p>
+  <p>
+    <a href="https://github.com/stefexec/OpenCarta/releases/latest">
+      <img src="https://img.shields.io/github/v/release/stefexec/OpenCarta?style=for-the-badge&color=F4A024" alt="Latest Release" />
+    </a>
+    <a href="LICENSE">
+      <img src="https://img.shields.io/badge/License-GPL--3.0--or--later-blue?style=for-the-badge" alt="License: GPL-3.0-or-later" />
+    </a>
+    <img src="https://img.shields.io/badge/Android-8.0%2B%20(API%2026)-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android 8.0+" />
+    <img src="https://img.shields.io/badge/Bluetooth-BLE%20GATT-0082FC?style=for-the-badge&logo=bluetooth&logoColor=white" alt="BLE GATT" />
+  </p>
+  <p>
+    <a href="#-download">Download APK</a> •
+    <a href="#-screenshots">Screenshots</a> •
+    <a href="#-features">Features</a> •
+    <a href="#-building-from-source">Build</a> •
+    <a href="PROTOCOL.md">BLE Protocol Docs</a>
+  </p>
+</div>
 
-Open-source Web Bluetooth controller and BLE protocol documentation for the **Focus V Carta Sport**.
+---
 
-## Features
+No account required. No telemetry. No cloud lock-in. Just fast, direct Bluetooth Low Energy control over your **Focus V Carta Sport**—built from scratch with Kotlin & Jetpack Compose alongside a zero-install Web Bluetooth app and full GATT protocol documentation.
 
-- **Zero-install Web Bluetooth UI** ([index.html](index.html)) — runs directly in Chrome / Chromium / Edge / Brave on desktop and Android.
-- **Full BLE Protocol Reference** ([PROTOCOL.md](PROTOCOL.md)) — reverse-engineered GATT services, characteristics, telemetry, presets, LEDs, settings, and offline dab history sync.
-- **Temperature Curve Studio & Live Graph:**
-  - Built-in scientifically grounded curves: **Quartz Banger Cooling Curve**, **Live Rosin Terpene Ladder**, **Cold-Start Smooth Ramp**, **Live Resin Flavor → Cloud**, and **Flash Melt → Mellow Finish**.
-  - Interactive breakpoint editor with **Smooth Ramp** or **Stepped** interpolation, `localStorage` custom curve saving, and a live `<canvas>` overlay of target vs. atomizer temperature.
-- **Preserves Official App High Scores:** Sends UTC time sync (`0xdd`) and **never** sends the `0xfd` record-clear command, so dabs remain queued in the Carta's flash for the official app to sync later.
+## 📥 Download
 
-## Quick Start
+- **Android APK (Recommended):** Grab the latest signed APK from [**GitHub Releases**](https://github.com/stefexec/OpenCarta/releases/latest).
+- **F-Droid:** Submission is currently in review ([`fdroiddata!57055`](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/57055)).
 
+> [!NOTE]
+> Android 12+ will ask for **Nearby devices** permission for BLE scanning. On Android 8–11, Android requires **Location** permission for Bluetooth LE scans (OpenCarta never collects or transmits location data).
+
+## 📱 Screenshots
+
+<table>
+  <tr>
+    <td align="center"><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.jpg" width="180" alt="Device Connect" /></td>
+    <td align="center"><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.jpg" width="180" alt="Sesh Control" /></td>
+    <td align="center"><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.jpg" width="180" alt="Curve Studio" /></td>
+    <td align="center"><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.jpg" width="180" alt="Presets &amp; LEDs" /></td>
+    <td align="center"><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5.jpg" width="180" alt="Achievements &amp; Settings" /></td>
+  </tr>
+</table>
+
+## ✨ Features
+
+### Native Android App (`android/`)
+- **Live Telemetry & Sesh Control:** Real-time atomizer temperature, battery percentage & charging status, remaining session countdown, heat-up / sesh state, and one-tap **Start / Stop** + **Power Off** (`0x11` `0xaf` flag).
+- **Temperature Curve Studio:** Dedicated **Curves** tab with 5 built-in scientifically grounded profiles (*Quartz Banger Cooling Curve*, *Live Rosin Terpene Ladder*, *Cold-Start Smooth Ramp*, *Live Resin Flavor → Cloud*, *Flash Melt → Mellow Finish*), interactive drag-and-drop breakpoint editing with dot markers on the temperature scale, **Smooth** or **Stepped** interpolation, custom saved curves, and live target vs. atomizer graphing.
+- **Presets & RGB LED Control:** Edit all 5 device presets (365°F–635°F, 20–90s) and configure LED mode (Solid / Pulse / Gradient / Rainbow), brightness, and custom RGB colors.
+- **Device Settings & Diagnostics:** °F / °C toggle, haptic feedback, battery-saving mode, screen brightness, auto-reconnect, and live BLE packet debug log.
+- **Stats, Achievements & Optional Sesh Calendar:** Local session counter, temperature & duration achievements, and an optional daily sesh calendar—stored strictly on-device.
+- **Preserves Official App High Scores:** Sends UTC time sync (`0xdd`) and **never** clears the device's offline dab flash log (`0xfd`), so sessions stay intact if you ever open the official app.
+
+### Zero-Install Web Bluetooth App (`index.html`)
+- Runs directly in Chrome / Chromium / Edge / Brave on desktop and Android with no installation required.
+- Includes live telemetry, preset editor, RGB LED control, Power Off, and the full Curve Studio.
+
+### Full Reverse-Engineered BLE Protocol (`PROTOCOL.md`)
+- Complete documentation of the Carta Sport GATT services, characteristics, telemetry notifications, command opcodes (`0x11`, `0xaa`, `0xbb`, `0xcc`, `0xdd`, `0xee`, `0xfd`), and wire formats.
+
+## 🛠 Building from Source
+
+### Android App
+```bash
+cd android
+./gradlew assembleRelease
+```
+The unsigned release APK will be at `android/app/build/outputs/apk/release/app-release-unsigned.apk` (or use `./gradlew assembleDebug` for a debug build).
+
+### Web Bluetooth UI
 Web Bluetooth requires a secure context (`http://localhost` or `https://`):
-
 ```bash
 python3 -m http.server 8000
 ```
-
-Open `http://localhost:8000` in Chrome/Chromium and click **Connect Carta**.
+Open `http://localhost:8000` in Chrome/Chromium and click **Connect Carta**.  
 *(On Linux Chrome, enable `chrome://flags/#enable-experimental-web-platform-features` if BLE devices do not appear.)*
+
+## 📄 License
+
+Licensed under the [**GNU General Public License v3.0 or later**](LICENSE) (`GPL-3.0-or-later`).
