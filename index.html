@@ -415,6 +415,7 @@
           <div class="row">
             <label>Curve Preset:</label>
             <select id="curvePresetSelect" onchange="onCurvePresetSelect()" style="flex:1;"></select>
+            <button id="renameCurveBtn" onclick="renameCustomCurve()" style="padding:6px 10px;" disabled title="Rename selected custom curve">Rename</button>
             <button id="deleteCurveBtn" class="danger" onclick="deleteCustomCurve()" style="padding:6px 10px;" disabled title="Delete selected custom curve">Delete</button>
           </div>
           <div class="row" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px;">
@@ -1052,7 +1053,9 @@
       document.getElementById('curveDescText').textContent = activeCurve.desc || 'Custom temperature curve. (Tip: drag dots directly on the graph!)';
       document.getElementById('interpSmoothBtn').classList.toggle('active', activeCurve.mode === 'smooth');
       document.getElementById('interpStepBtn').classList.toggle('active', activeCurve.mode === 'step');
-      document.getElementById('deleteCurveBtn').disabled = !String(activeCurve.id).startsWith('custom_');
+      const isCustom = String(activeCurve.id).startsWith('custom_');
+      document.getElementById('renameCurveBtn').disabled = !isCustom;
+      document.getElementById('deleteCurveBtn').disabled = !isCustom;
 
       const unitStr = state.unit === 0x11 ? '°F' : '°C';
       const list = document.getElementById('curvePointsList');
@@ -1169,6 +1172,24 @@
       populateCurveDropdown(id);
       renderCurveEditor();
       drawCurveCanvas();
+    }
+
+    function renameCustomCurve() {
+      if (!String(activeCurve.id).startsWith('custom_')) return;
+      const next = prompt('New name for this custom curve:', activeCurve.name);
+      if (!next || !next.trim()) return;
+      const trimmed = next.trim();
+      let custom = [];
+      try {
+        custom = JSON.parse(localStorage.getItem('opencarta_custom_curves') || '[]');
+      } catch (_) {}
+      const entry = custom.find(c => c.id === activeCurve.id);
+      if (entry) {
+        entry.name = trimmed;
+        localStorage.setItem('opencarta_custom_curves', JSON.stringify(custom));
+      }
+      activeCurve.name = trimmed;
+      populateCurveDropdown(activeCurve.id);
     }
 
     function deleteCustomCurve() {
