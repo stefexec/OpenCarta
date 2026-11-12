@@ -76,6 +76,13 @@ fun AboutScreen(
     @Suppress("DEPRECATION")
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
+    val versionName = remember(context) {
+        try {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.0.1"
+        } catch (_: Exception) {
+            "1.0.1"
+        }
+    }
     val scope = rememberCoroutineScope()
     var copiedSymbol by remember { mutableStateOf<String?>(null) }
 
@@ -109,7 +116,7 @@ fun AboutScreen(
                 .padding(vertical = 2.dp)
         ) {
             Text(
-                text = "© 2026 OpenCarta v1.0.0 • by ",
+                text = "© 2026 OpenCarta v$versionName • by ",
                 color = CartaColors.TextSecondary,
                 fontSize = 13.sp
             )
