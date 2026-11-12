@@ -1,0 +1,16 @@
+OpenCarta is a fast, lightweight, open-source native Android Bluetooth LE controller for the Focus V Carta Sport (and compatible Carta devices).
+
+Built from a clean reverse-engineering of the Carta BLE GATT protocol, OpenCarta gives you full local control of your device with zero accounts, zero analytics/tracking, and zero shop integrations.
+
+Key Features:
+• Temperature Curve Studio & Live Graph: Design custom multi-point temperature curves with Smooth Ramp or Stepped interpolation, auto-generate curves (exponential cooling, linear ramp, 3-step terpene ladder, flavor-hold), drag points directly on the graph, and watch your live atomizer temperature trace in real time.
+• Achievements Unlocked for Non-Carta 3 Devices: Track dab milestones (100 to 3,000+ dabs) and daily streaks locally on any supported device—including the Carta Sport—without needing a Carta 3 or cloud account.
+• Preserves Official App XP & History: OpenCarta never sends the record-clear command (0xfd), so un-synced session records remain on your device and you still earn XP whenever you open the official app.
+• Full Official App Feature Parity (Minus Tracking & Shop):
+  - Live telemetry (atomizer temperature, target temperature, session countdown, battery %, standby timer, daily/monthly/all-time dab counters)
+  - 5 Heating Presets (Concentrate & Dry Herb) with live temperature scrubbing
+  - 5 RGB LED Presets with a 2D color picker, 5 color stops, and all animations (Rotate, Pulse, Fade, Sparkle, Static) + Stealth/Off mode
+  - Device settings: vibration intensity (20%–100%), LED & sleep timeouts, Low Power mode, °C/°F toggle, custom device renaming, and remote power-off
+  - Optional Session Calendar tab (toggleable in Device settings)
+  - Built-in BLE Packet Inspector & Raw Hex tester for protocol enthusiasts
+

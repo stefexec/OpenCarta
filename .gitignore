@@ -1,3 +1,16 @@
 *.log
 *.zip
 .DS_Store
+
+# Android build & local artifacts
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/gradle/wrapper/gradle-wrapper.jar
+*.apk
+*.aab
+*.keystore
+*.jks
+fdroid/
+

@@ -1,0 +1,6 @@
+Initial release of OpenCarta v1.0.0:
+- Full Focus V Carta Sport BLE control (telemetry, presets, LEDs, device settings, remote power-off)
+- Interactive Temperature Curve Studio & live atomizer graph
+- Local Achievements & optional Session Calendar (preserves official app XP)
+- Built-in BLE Packet Log & Raw Hex tester
+
