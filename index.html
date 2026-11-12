@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpenCarta — Focus V Carta Sport Web Bluetooth Controller</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --success: #2ea043;
+      --danger: #f85149;
+      --warn: #d29922;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      max-width: 1200px;
+      margin: 0 auto 20px auto;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    h1 { margin: 0; font-size: 1.35rem; }
+    .sub { color: var(--muted); font-size: 0.85rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 16px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .card h2 {
+      margin: 0 0 12px 0;
+      font-size: 1rem;
+      color: var(--accent);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .stat {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .stat-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; }
+    .stat-val { font-size: 1.35rem; font-weight: 700; margin-top: 2px; }
+    .temp-hero {
+      grid-column: span 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 16px;
+      background: linear-gradient(135deg, #161b22, #1f2937);
+    }
+    .temp-hero .stat-val { font-size: 2.2rem; }
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    label { font-size: 0.85rem; color: var(--muted); }
+    button {
+      background: #21262d;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 13px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    button:hover:not(:disabled) { background: #30363d; border-color: var(--muted); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    button.primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+    button.success { background: var(--success); color: #fff; border-color: var(--success); font-weight: 600; }
+    button.danger { background: var(--danger); color: #fff; border-color: var(--danger); font-weight: 600; }
+    button.active { border-color: var(--accent); background: rgba(88, 166, 255, 0.18); color: var(--accent); font-weight: 600; }
+    input[type="number"], input[type="text"], select {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-family: inherit;
+      font-size: 0.85rem;
+    }
+    input[type="color"] {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      width: 44px;
+      height: 34px;
+      padding: 2px;
+      cursor: pointer;
+    }
+    .btn-group { display: flex; gap: 6px; flex-wrap: wrap; }
+    .badge {
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: #30363d;
+    }
+    .badge.online { background: rgba(46, 160, 67, 0.25); color: #3fb950; }
+    .badge.heating { background: rgba(248, 81, 73, 0.25); color: #ff7b72; }
+    .log-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      height: 250px;
+      overflow-y: auto;
+      padding: 10px;
+      font-size: 0.78rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .log-tx { color: #58a6ff; }
+    .log-rx { color: #3fb950; }
+    .log-info { color: #d29922; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>OpenCarta — Carta V Sport Web Controller</h1>
+      <div class="sub" id="deviceInfoText">Not connected • Service 1011123e-8535-b5a0-7140-a304d2495cb7</div>
+    </div>
+    <div class="btn-group" style="align-items:center;">
+      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+        <input type="checkbox" id="acceptAllChk" /> Show all BLE devices
+      </label>
+      <button id="connectBtn" class="primary" onclick="toggleConnection()">Connect Carta</button>
+      <button id="syncBtn" onclick="sendTimeSync()" disabled>Sync Time / Dump</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- 1. LIVE TELEMETRY -->
+    <div class="card">
+      <h2>
+        <span>Live Telemetry (0x99)</span>
+        <span class="badge" id="statusBadge">DISCONNECTED</span>
+      </h2>
+      <div class="stat-grid">
+        <div class="stat temp-hero">
+          <div>
+            <div class="stat-label">Atomizer / Target Temp</div>
+            <div class="stat-val"><span id="curTemp">--</span> / <span id="tgtTemp">--</span> <span id="unitLabel">°C</span></div>
+          </div>
+          <div style="text-align:right;">
+            <div class="stat-label">Session Timer</div>
+            <div class="stat-val" id="remTime">0s</div>
+          </div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Battery Level</div>
+          <div class="stat-val" id="batteryVal">--%</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Active Heat Preset</div>
+          <div class="stat-val" id="heatPresetVal">--</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Active LED / Brightness</div>
+          <div class="stat-val" id="ledStatusVal">--</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Vibe / Low Power</div>
+          <div class="stat-val" id="vibeStatusVal">--</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Dab Counters (0xaa)</div>
+          <div class="stat-val" style="font-size:0.95rem;" id="dabCountersVal">-- / -- / -- / --</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Standby Countdown</div>
+          <div class="stat-val" id="standbyVal">--</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. SESSION & TEMPERATURE CONTROL (0xcc) -->
+    <div class="card">
+      <h2>Session & Heating Control (0xcc)</h2>
+      <div class="row">
+        <label>Heating Preset (1–5):</label>
+        <div class="btn-group" id="heatPresetBtns">
+          <button onclick="selectHeatPreset(1)" id="hpBtn1">P1</button>
+          <button onclick="selectHeatPreset(2)" id="hpBtn2">P2</button>
+          <button onclick="selectHeatPreset(3)" id="hpBtn3">P3</button>
+          <button onclick="selectHeatPreset(4)" id="hpBtn4">P4</button>
+          <button onclick="selectHeatPreset(5)" id="hpBtn5">P5</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <label for="waxTempInput">Concentrate Target Temp (<span id="waxUnitSpan">°C</span>):</label>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input type="number" id="waxTempInput" value="230" min="150" max="650" style="width:90px;" oninput="onWaxTempChanged()" />
+          <button onclick="sendCcCommand(0x00)" class="primary" id="saveTempBtn" disabled style="padding:6px 10px;">Apply</button>
+        </div>
+      </div>
+      <div class="row">
+        <label for="waxTimerInput">Concentrate Hold Timer (sec):</label>
+        <input type="number" id="waxTimerInput" value="55" min="10" max="120" style="width:90px;" />
+      </div>
+      <div class="row">
+        <label for="herbTempInput">Herb Target Temp / Timer:</label>
+        <div>
+          <input type="number" id="herbTempInput" value="165" min="100" max="450" style="width:75px;" />
+          <input type="number" id="herbTimerInput" value="180" min="30" max="240" style="width:75px;" /> s
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:14px;">
+        <button onclick="sendCcCommand(0x00)" class="primary" id="savePresetBtn" disabled>Save to Preset</button>
+        <div class="btn-group">
+          <button onclick="sendCcCommand(0xa5)" class="success" id="startSeshBtn" disabled>▶ Start Sesh (0xa5)</button>
+          <button onclick="sendCcCommand(0xaf)" class="danger" id="stopSeshBtn" disabled>■ Stop Sesh (0xaf)</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;font-size:0.78rem;color:var(--muted);" id="presetTableSummary">
+        Stored Concentrate Presets: waiting for sync...
+      </div>
+    </div>
+
+    <!-- 3. DEVICE SETTINGS (0x11, 0xd1, 0xac/0xaf) -->
+    <div class="card">
+      <h2>Device Settings (0x11 / 0xd1 / 0xac)</h2>
+
+      <div class="row">
+        <label>Temperature Unit:</label>
+        <div class="btn-group">
+          <button id="unitBtnC" class="active" onclick="setUnit(0x22)">Celsius (°C)</button>
+          <button id="unitBtnF" onclick="setUnit(0x11)">Fahrenheit (°F)</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>LED Switch / Active Slot:</label>
+        <div class="btn-group">
+          <button id="ledSlotBtn0" onclick="setLedSlot(0)">OFF</button>
+          <button id="ledSlotBtn1" onclick="setLedSlot(1)">L1</button>
+          <button id="ledSlotBtn2" onclick="setLedSlot(2)">L2</button>
+          <button id="ledSlotBtn3" onclick="setLedSlot(3)">L3</button>
+          <button id="ledSlotBtn4" onclick="setLedSlot(4)">L4</button>
+          <button id="ledSlotBtn5" class="active" onclick="setLedSlot(5)">L5</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>Vibration Intensity:</label>
+        <div class="btn-group">
+          <button id="vibeBtn2" onclick="setVibe(0x02)">20%</button>
+          <button id="vibeBtn4" onclick="setVibe(0x04)">40%</button>
+          <button id="vibeBtn6" onclick="setVibe(0x06)">60%</button>
+          <button id="vibeBtn8" class="active" onclick="setVibe(0x08)">80%</button>
+          <button id="vibeBtn10" onclick="setVibe(0x0a)">100%</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>Low Power Mode:</label>
+        <div class="btn-group">
+          <button id="lpBtn0" class="active" onclick="setLowPower(0)">Off (80% LED)</button>
+          <button id="lpBtn1" onclick="setLowPower(1)">On (20% LED)</button>
+        </div>
+      </div>
+
+      <hr style="border:0;border-top:1px solid var(--border);margin:12px 0;" />
+
+      <div class="row">
+        <label>LED / Sleep Timeouts (min):</label>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input type="number" id="ledTimeoutMin" value="8" min="1" max="15" style="width:60px;" title="LED Timeout (minutes)" />
+          <span>/</span>
+          <input type="number" id="sleepTimeoutMin" value="10" min="1" max="15" style="width:60px;" title="Sleep Timeout (minutes)" />
+          <button onclick="sendTimeouts()" id="timeoutBtn" disabled>Set (0xd1)</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>Device Name (max 29 chars):</label>
+        <div style="display:flex;gap:6px;">
+          <input type="text" id="renameInput" value="Pfeifi McDabface" maxlength="29" style="width:165px;" />
+          <button onclick="sendRename()" id="renameBtn" disabled>Rename</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. LED PRESET EDITOR (0xe0..0xe4) -->
+    <div class="card">
+      <h2>LED Preset Customizer (0xe0–0xe4)</h2>
+      <div class="row">
+        <label>Target LED Slot:</label>
+        <select id="ledEditSlot" onchange="loadLedSlotToEditor()">
+          <option value="1">Slot 1 (0xe0)</option>
+          <option value="2">Slot 2 (0xe1)</option>
+          <option value="3">Slot 3 (0xe2)</option>
+          <option value="4">Slot 4 (0xe3)</option>
+          <option value="5" selected>Slot 5 (0xe4)</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label>Animation Mode (Byte 3):</label>
+        <select id="ledAnimMode">
+          <option value="0x13">Rotate (0x13)</option>
+          <option value="0x23">Pulse (0x23)</option>
+          <option value="0x33" selected>Fade (0x33)</option>
+          <option value="0x43">Sparkle (0x43)</option>
+          <option value="0x53">Static (0x53)</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label>5 Color Stops (RGB):</label>
+        <div style="display:flex;gap:6px;">
+          <input type="color" id="ledCol1" value="#00f028" />
+          <input type="color" id="ledCol2" value="#0000f9" />
+          <input type="color" id="ledCol3" value="#00f413" />
+          <input type="color" id="ledCol4" value="#0800e1" />
+          <input type="color" id="ledCol5" value="#0fe300" />
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:14px;">
+        <button class="primary" onclick="sendLedConfig()" id="applyLedBtn" disabled style="width:100%;">
+          Upload & Apply LED Preset
+        </button>
+      </div>
+    </div>
+
+    <!-- 5. PACKET INSPECTOR & RAW HEX -->
+    <div class="card" style="grid-column: 1 / -1;">
+      <h2>
+        <span>BLE Packet Log & Raw Command Tester</span>
+        <div style="display:flex;gap:10px;align-items:center;font-weight:normal;font-size:0.8rem;">
+          <label style="cursor:pointer;"><input type="checkbox" id="hide99Chk" checked /> Hide repetitive 0x99 / 0xdd01</label>
+          <button onclick="document.getElementById('logBox').innerHTML=''">Clear</button>
+        </div>
+      </h2>
+      <div class="row">
+        <input type="text" id="rawHexInput" placeholder="Hex bytes, e.g. 11 0c 00 22 08 00 03 05 00 08 00 11" style="flex:1;" />
+        <button onclick="sendRawHex()" id="rawSendBtn" disabled>Send Raw Write (0x001f)</button>
+      </div>
+      <div class="log-box" id="logBox"></div>
+    </div>
+  </div>
+
+  <script>
+    const CARTA_SERVICE_UUID = '1011123e-8535-b5a0-7140-a304d2495cb7';
+    const CARTA_NOTIFY_UUID  = '1011123e-8535-b5a0-7140-a304d2495cb8';
+    const CARTA_WRITE_UUID   = '1011123e-8535-b5a0-7140-a304d2495cb9';
+    const DIS_SERVICE_UUID   = '0000180a-0000-1000-8000-00805f9b34fb';
+
+    let waxTempDebounce = null;
+    function onWaxTempChanged() {
+      clearTimeout(waxTempDebounce);
+      waxTempDebounce = setTimeout(() => {
+        if (bleDevice && bleDevice.gatt.connected) {
+          // Send 0xcc with action=0x00 and preset=0x00 (scrubbing/live preview)
+          sendCcCommand(0x00, 0x00);
+        }
+      }, 150);
+    }
+    let bleDevice = null;
+    let writeChar = null;
+    let notifyChar = null;
+
+    // Tracked device state
+    const state = {
+      unit: 0x22,         // 0x22 = °C, 0x11 = °F
+      brightness: 0x08,   // 0x02..0x0a
+      heatPreset: 1,      // 1..5
+      ledPreset: 5,       // 0..5 (0 = Off)
+      vibe: 0x08,         // 0x02..0x0a
+      lowPower: 0x00,     // 0 or 1
+      herbTemp: 165,
+      waxTemp: 230,
+      herbTimer: 180,
+      waxTimer: 55,
+      presetsC: {},       // slot 1..5 -> {temp, time}
+      presetsF: {},       // slot 1..5 -> {temp, time}
+      ledSlots: {}        // slot 1..5 -> Uint8Array(20)
+    };
+
+    function toHex(bytes) {
+      return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
+    }
+
+    function logMsg(type, text) {
+      const box = document.getElementById('logBox');
+      const div = document.createElement('div');
+      div.className = type === 'TX' ? 'log-tx' : type === 'RX' ? 'log-rx' : 'log-info';
+      const ts = new Date().toLocaleTimeString('en-GB', { hour12: false }) + '.' + String(new Date().getMilliseconds()).padStart(3, '0');
+      div.textContent = `[${ts}] ${type}: ${text}`;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function setControlsEnabled(enabled) {
+      ['syncBtn', 'saveTempBtn', 'savePresetBtn', 'startSeshBtn', 'stopSeshBtn', 'timeoutBtn', 'renameBtn', 'applyLedBtn', 'rawSendBtn']
+        .forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.disabled = !enabled;
+        });
+    }
+
+    async function toggleConnection() {
+      if (bleDevice && bleDevice.gatt.connected) {
+        bleDevice.gatt.disconnect();
+        return;
+      }
+      if (!navigator.bluetooth) {
+        alert('Web Bluetooth is not supported in this browser. Please use Chrome, Edge, or Chromium on desktop/Android.');
+        return;
+      }
+      try {
+        const acceptAll = document.getElementById('acceptAllChk').checked;
+        const options = acceptAll
+          ? { acceptAllDevices: true, optionalServices: [CARTA_SERVICE_UUID, DIS_SERVICE_UUID] }
+          : { filters: [{ services: [CARTA_SERVICE_UUID] }, { namePrefix: 'Pfeifi' }, { namePrefix: 'CARTA' }, { namePrefix: 'Focus' }], optionalServices: [CARTA_SERVICE_UUID, DIS_SERVICE_UUID] };
+
+        logMsg('INFO', 'Requesting BLE device...');
+        bleDevice = await navigator.bluetooth.requestDevice(options);
+        bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+
+        logMsg('INFO', `Connecting to "${bleDevice.name || bleDevice.id}"...`);
+        const server = await bleDevice.gatt.connect();
+
+        const service = await server.getPrimaryService(CARTA_SERVICE_UUID);
+        notifyChar = await service.getCharacteristic(CARTA_NOTIFY_UUID);
+        writeChar  = await service.getCharacteristic(CARTA_WRITE_UUID);
+
+        await notifyChar.startNotifications();
+        notifyChar.addEventListener('characteristicvaluechanged', onNotification);
+
+        document.getElementById('connectBtn').textContent = 'Disconnect';
+        document.getElementById('statusBadge').textContent = 'CONNECTED';
+        document.getElementById('statusBadge').className = 'badge online';
+        setControlsEnabled(true);
+
+        // Read Device Info if available
+        let infoParts = [bleDevice.name || 'Carta Sport'];
+        try {
+          const dis = await server.getPrimaryService(DIS_SERVICE_UUID);
+          const dec = new TextDecoder();
+          for (const [uuid, label] of [['00002a24-0000-1000-8000-00805f9b34fb', 'Model'], ['00002a25-0000-1000-8000-00805f9b34fb', 'SN'], ['00002a28-0000-1000-8000-00805f9b34fb', 'FW']]) {
+            try {
+              const c = await dis.getCharacteristic(uuid);
+              const v = await c.readValue();
+              infoParts.push(`${label}: ${dec.decode(v).replace(/\0/g, '')}`);
+            } catch (_) {}
+          }
+        } catch (_) {}
+        document.getElementById('deviceInfoText').textContent = infoParts.join(' • ');
+        if (bleDevice.name) {
+          document.getElementById('renameInput').value = bleDevice.name.replace(/\0/g, '');
+        }
+
+        // Send initial 0xdd time sync
+        await sendTimeSync();
+      } catch (err) {
+        logMsg('INFO', `Connection error: ${err.message}`);
+      }
+    }
+
+    function onDisconnected() {
+      logMsg('INFO', 'Disconnected from Carta.');
+      document.getElementById('connectBtn').textContent = 'Connect Carta';
+      document.getElementById('statusBadge').textContent = 'DISCONNECTED';
+      document.getElementById('statusBadge').className = 'badge';
+      setControlsEnabled(false);
+    }
+
+    async function writePacket(bytes, label = '') {
+      if (!writeChar) return;
+      const arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+      logMsg('TX', `${toHex(arr)}${label ? '  // ' + label : ''}`);
+      if (writeChar.writeValueWithoutResponse) {
+        await writeChar.writeValueWithoutResponse(arr);
+      } else {
+        await writeChar.writeValue(arr);
+      }
+    }
+
+    async function sendTimeSync() {
+      const now = new Date();
+      const year = now.getUTCFullYear();
+      const pkt = new Uint8Array([
+        0xdd, 0x0c,
+        (year >> 8) & 0xff, year & 0xff,
+        now.getUTCMonth() + 1,
+        now.getUTCDate(),
+        now.getUTCHours(),
+        now.getUTCMinutes(),
+        0x00, 0x00, 0x00,
+        0xdd
+      ]);
+      await writePacket(pkt, 'Time Sync UTC (0xdd)');
+    }
+
+    let last99StatusKey = '';
+    function onNotification(event) {
+      const b = new Uint8Array(event.target.value.buffer, event.target.value.byteOffset, event.target.value.byteLength);
+      const op = b[0];
+      const hideSpam = document.getElementById('hide99Chk').checked;
+
+      if (op === 0x99 && b.length === 20) {
+        // Exclude Byte 6-7 (ambient temp jitter 14..15C) and Byte 18 (idle countdown tick) from spam filter
+        const statusKey = `${b[3]}-${b[4]}-${b[5]}-${(b[10]<<8)|b[11]}-${b[12]}-${b[13]}-${b[17]}`;
+        if (!hideSpam || statusKey !== last99StatusKey) {
+          logMsg('RX', `${toHex(b)}  // Status (0x99)`);
+          last99StatusKey = statusKey;
+        }
+        parseStatus99(b);
+      } else if (op === 0xdd && b.length === 20 && b[1] === 0x01) {
+        if (!hideSpam) {
+          logMsg('RX', `${toHex(b)}  // Session Stream (phase=${b[2]})`);
+        }
+      } else if (op === 0xaa && b.length === 19) {
+        const dv = new DataView(b.buffer, b.byteOffset, b.byteLength);
+        const c1 = dv.getUint32(2, false);
+        const c2 = dv.getUint32(6, false);
+        const c3 = dv.getUint32(10, false);
+        const c4 = dv.getUint32(14, false);
+        document.getElementById('dabCountersVal').textContent = `${c1} / ${c2} / ${c3} / ${c4}`;
+        logMsg('RX', `${toHex(b)}  // Dab Counters: ${c1}, ${c2}, ${c3}, ${c4}`);
+      } else if ((op === 0x22 || op === 0x33 || op === 0x44 || op === 0x55) && b.length === 18) {
+        parsePresetTable(b);
+        logMsg('RX', `${toHex(b)}  // Preset Table (0x${op.toString(16)})`);
+      } else if (op >= 0xe6 && op <= 0xea && b.length === 20) {
+        const slot = 0xea - op + 1;
+        state.ledSlots[slot] = new Uint8Array(b);
+        if (Number(document.getElementById('ledEditSlot').value) === slot) {
+          loadLedSlotToEditor();
+        }
+        logMsg('RX', `${toHex(b)}  // Stored LED Slot ${slot}`);
+      } else if (op === 0xd2 && b.length === 7) {
+        const ledSec = (b[2] << 8) | b[3];
+        const sleepSec = (b[4] << 8) | b[5];
+        document.getElementById('ledTimeoutMin').value = Math.round(ledSec / 60);
+        document.getElementById('sleepTimeoutMin').value = Math.round(sleepSec / 60);
+        logMsg('RX', `${toHex(b)}  // Timeouts: LED=${ledSec}s (${ledSec/60}m), Sleep=${sleepSec}s (${sleepSec/60}m)`);
+      } else {
+        logMsg('RX', toHex(b));
+      }
+    }
+
+    function parseStatus99(b) {
+      const unitByte = b[3];
+      const rawPreset = b[4] & 0x0f;
+      const remSec = b[5];
+      const curTemp = (b[6] << 8) | b[7];
+      const herbTemp = (b[8] << 8) | b[9];
+      const waxTemp = (b[10] << 8) | b[11];
+      const battery = b[12];
+      const ledPreset = (b[13] >> 4) & 0x0f;
+      const ledBright = (b[13] & 0x0f);
+      const herbTimer = b[14];
+      const waxTimer = b[15];
+      const vibe = (b[17] >> 4) & 0x0f;
+      const lowPower = b[17] & 0x0f;
+      const standby = b[18];
+
+      state.unit = unitByte;
+      state.heatPreset = rawPreset || state.heatPreset;
+      state.ledPreset = ledPreset;
+      state.brightness = ledBright || state.brightness;
+      state.vibe = vibe || state.vibe;
+      state.lowPower = lowPower;
+      state.herbTemp = herbTemp;
+      state.waxTemp = waxTemp;
+      state.herbTimer = herbTimer;
+      state.waxTimer = waxTimer;
+
+      const unitStr = unitByte === 0x11 ? '°F' : '°C';
+      document.getElementById('curTemp').textContent = curTemp;
+      document.getElementById('tgtTemp').textContent = waxTemp;
+      document.getElementById('unitLabel').textContent = unitStr;
+      document.getElementById('waxUnitSpan').textContent = unitStr;
+      document.getElementById('remTime').textContent = `${remSec}s`;
+      document.getElementById('batteryVal').textContent = `${battery}%`;
+      document.getElementById('heatPresetVal').textContent = rawPreset ? `Preset ${rawPreset}` : 'Manual';
+      document.getElementById('ledStatusVal').textContent = `${ledPreset === 0 ? 'OFF' : 'Slot ' + ledPreset} (${ledBright * 10}%)`;
+      document.getElementById('vibeStatusVal').textContent = `${vibe * 10}% / LP:${lowPower ? 'ON' : 'OFF'}`;
+      document.getElementById('standbyVal').textContent = standby ? `${standby}` : 'Active';
+
+      const badge = document.getElementById('statusBadge');
+      if (remSec > 0) {
+        badge.textContent = curTemp < waxTemp - 2 ? `PRE-HEATING (${remSec}s)` : `SESSION ACTIVE (${remSec}s)`;
+        badge.className = 'badge heating';
+      } else {
+        badge.textContent = 'IDLE / ONLINE';
+        badge.className = 'badge online';
+      }
+
+      // Highlight active buttons
+      document.getElementById('unitBtnC').classList.toggle('active', unitByte === 0x22);
+      document.getElementById('unitBtnF').classList.toggle('active', unitByte === 0x11);
+      for (let i = 1; i <= 5; i++) {
+        document.getElementById(`hpBtn${i}`).classList.toggle('active', rawPreset === i);
+      }
+      for (let i = 0; i <= 5; i++) {
+        document.getElementById(`ledSlotBtn${i}`).classList.toggle('active', ledPreset === i);
+      }
+      for (const v of [2, 4, 6, 8, 10]) {
+        document.getElementById(`vibeBtn${v}`).classList.toggle('active', vibe === v);
+      }
+      document.getElementById('lpBtn0').classList.toggle('active', lowPower === 0);
+      document.getElementById('lpBtn1').classList.toggle('active', lowPower === 1);
+    }
+
+    function parsePresetTable(b) {
+      const op = b[0];
+      const list = [];
+      for (let i = 0; i < 5; i++) {
+        const offset = 2 + i * 3;
+        const temp = (b[offset] << 8) | b[offset + 1];
+        const time = b[offset + 2];
+        list.push(`P${i + 1}: ${temp}°/${time}s`);
+        if (op === 0x22) state.presetsC[i + 1] = { temp, time };
+        if (op === 0x33) state.presetsF[i + 1] = { temp, time };
+      }
+      if (op === 0x22) {
+        document.getElementById('presetTableSummary').textContent = `Concentrate (°C): ${list.join(' • ')}`;
+      }
+    }
+
+    async function send11Command() {
+      const pkt = new Uint8Array([
+        0x11, 0x0c, 0x00,
+        state.unit,
+        state.brightness,
+        0x00,
+        state.heatPreset,
+        state.ledPreset,
+        0x00,
+        state.vibe,
+        state.lowPower,
+        0x11
+      ]);
+      await writePacket(pkt, `Settings (unit=0x${state.unit.toString(16)}, P${state.heatPreset}, LED=${state.ledPreset}, vibe=${state.vibe*10}%, LP=${state.lowPower})`);
+    }
+
+    function selectHeatPreset(slot) {
+      state.heatPreset = slot;
+      const tbl = state.unit === 0x11 ? state.presetsF : state.presetsC;
+      if (tbl[slot]) {
+        document.getElementById('waxTempInput').value = tbl[slot].temp;
+        document.getElementById('waxTimerInput').value = tbl[slot].time;
+      }
+      send11Command();
+    }
+
+    function setUnit(unitByte) {
+      state.unit = unitByte;
+      send11Command();
+    }
+
+    function setLedSlot(slot) {
+      state.ledPreset = slot;
+      send11Command();
+    }
+
+    function setVibe(vibeVal) {
+      state.vibe = vibeVal;
+      send11Command();
+    }
+
+    function setLowPower(lpVal) {
+      state.lowPower = lpVal;
+      state.brightness = lpVal ? 0x02 : 0x08;
+      send11Command();
+    }
+
+    async function sendCcCommand(actionByte, targetPresetSlot = null) {
+      const herbTemp = Number(document.getElementById('herbTempInput').value) || state.herbTemp;
+      const waxTemp  = Number(document.getElementById('waxTempInput').value) || state.waxTemp;
+      const herbTime = Number(document.getElementById('herbTimerInput').value) || state.herbTimer;
+      const waxTime  = Number(document.getElementById('waxTimerInput').value) || state.waxTimer;
+      const slot = targetPresetSlot !== null ? targetPresetSlot : state.heatPreset;
+
+      const pkt = new Uint8Array([
+        0xcc, 0x10,
+        (herbTemp >> 8) & 0xff, herbTemp & 0xff,
+        (waxTemp >> 8) & 0xff, waxTemp & 0xff,
+        state.unit,
+        (herbTime >> 8) & 0xff, herbTime & 0xff,
+        (waxTime >> 8) & 0xff, waxTime & 0xff,
+        0x00,
+        slot,
+        actionByte,
+        0x00,
+        0xcc
+      ]);
+      const actionLabel = actionByte === 0xa5 ? 'START SESH' : actionByte === 0xaf ? 'STOP SESH' : (slot === 0 ? 'LIVE TEMP ADJUST' : 'SAVE TO PRESET');
+      await writePacket(pkt, `${actionLabel} (${waxTemp}°, ${waxTime}s, P${slot})`);
+    }
+
+    async function sendTimeouts() {
+      const ledMin = Math.max(1, Math.min(15, Number(document.getElementById('ledTimeoutMin').value) || 8));
+      const sleepMin = Math.max(1, Math.min(15, Number(document.getElementById('sleepTimeoutMin').value) || 10));
+      const ledSec = ledMin * 60;
+      const sleepSec = sleepMin * 60;
+      const pkt = new Uint8Array([
+        0xd1, 0x07,
+        (ledSec >> 8) & 0xff, ledSec & 0xff,
+        (sleepSec >> 8) & 0xff, sleepSec & 0xff,
+        0xd1
+      ]);
+      await writePacket(pkt, `Set Timeouts (LED=${ledMin}m, Sleep=${sleepMin}m)`);
+    }
+
+    async function sendRename() {
+      const name = document.getElementById('renameInput').value.trim();
+      const enc = new TextEncoder().encode(name);
+      const p1 = new Uint8Array(20);
+      p1[0] = 0xac;
+      p1[1] = 0x14;
+      p1.set(enc.slice(0, 17), 2);
+      p1[19] = 0xac;
+
+      const p2 = new Uint8Array(15);
+      p2[0] = 0xaf;
+      p2[1] = 0x0f;
+      if (enc.length > 17) {
+        p2.set(enc.slice(17, 29), 2);
+      }
+      p2[14] = 0xaf;
+
+      await writePacket(p1, `Rename Part 1 ("${name}")`);
+      await new Promise(r => setTimeout(r, 180));
+      await writePacket(p2, 'Rename Part 2');
+    }
+
+    function rgbToHex(r, g, b) {
+      return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+    }
+
+    function hexToRgb(hex) {
+      const n = parseInt(hex.replace('#', ''), 16);
+      return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff];
+    }
+
+    function loadLedSlotToEditor() {
+      const slot = Number(document.getElementById('ledEditSlot').value);
+      const b = state.ledSlots[slot];
+      if (!b) return;
+      const modeHex = '0x' + b[3].toString(16).padStart(2, '0');
+      const modeSel = document.getElementById('ledAnimMode');
+      if ([...modeSel.options].some(o => o.value === modeHex)) {
+        modeSel.value = modeHex;
+      }
+      for (let i = 0; i < 5; i++) {
+        const off = 4 + i * 3;
+        document.getElementById(`ledCol${i + 1}`).value = rgbToHex(b[off], b[off + 1], b[off + 2]);
+      }
+    }
+
+    async function sendLedConfig() {
+      const slot = Number(document.getElementById('ledEditSlot').value);
+      const op = 0xe0 + (slot - 1);
+      const mode = parseInt(document.getElementById('ledAnimMode').value, 16);
+      const pkt = new Uint8Array(20);
+      pkt[0] = op;
+      pkt[1] = 0x14;
+      pkt[2] = 0xaa;
+      pkt[3] = mode;
+      for (let i = 0; i < 5; i++) {
+        const [r, g, b] = hexToRgb(document.getElementById(`ledCol${i + 1}`).value);
+        pkt[4 + i * 3] = r;
+        pkt[5 + i * 3] = g;
+        pkt[6 + i * 3] = b;
+      }
+      pkt[19] = op;
+      state.ledPreset = slot;
+      await send11Command();
+      await new Promise(r => setTimeout(r, 150));
+      await writePacket(pkt, `LED Slot ${slot} Config (mode=0x${mode.toString(16)})`);
+    }
+
+    async function sendRawHex() {
+      const raw = document.getElementById('rawHexInput').value.replace(/[^0-9a-fA-F]/g, '');
+      if (!raw || raw.length % 2 !== 0) {
+        alert('Please enter a valid even-length hex string.');
+        return;
+      }
+      const bytes = new Uint8Array(raw.length / 2);
+      for (let i = 0; i < bytes.length; i++) {
+        bytes[i] = parseInt(raw.substr(i * 2, 2), 16);
+      }
+      await writePacket(bytes, 'Raw Hex');
+    }
+  </script>
+</body>
+</html>
