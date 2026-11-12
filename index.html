@@ -415,6 +415,23 @@
             <label>Curve Preset:</label>
             <select id="curvePresetSelect" onchange="onCurvePresetSelect()" style="flex:1;"></select>
           </div>
+          <div class="row" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px;">
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;width:100%;">
+              <span style="font-size:0.78rem;color:var(--muted);">Auto-Gen:</span>
+              <input type="number" id="genStartTemp" value="215" min="150" max="650" style="width:64px;" title="Start Temp" />
+              <span style="font-size:0.8rem;color:var(--muted);">→</span>
+              <input type="number" id="genEndTemp" value="235" min="150" max="650" style="width:64px;" title="End Temp" />
+              <input type="number" id="genDurSec" value="55" min="15" max="120" style="width:58px;" title="Duration (sec)" />
+              <span style="font-size:0.78rem;color:var(--muted);">s</span>
+              <select id="genShape" style="flex:1;min-width:120px;">
+                <option value="exp">Exponential (Cooling / Decay)</option>
+                <option value="linear">Linear Ramp</option>
+                <option value="ladder">3-Step Terp Ladder</option>
+                <option value="ease_in">Flavor Hold → Late Ramp</option>
+              </select>
+              <button class="primary" onclick="generateCurveFromRange()" style="padding:6px 10px;">Generate</button>
+            </div>
+          </div>
           <div class="row">
             <label>Interpolation:</label>
             <div class="btn-group">
@@ -914,13 +931,13 @@
         id: 'quartz_cooling',
         name: 'Quartz Banger Cooling Curve (55s)',
         mode: 'smooth',
-        desc: 'Simulates Newton\'s Law of Cooling on a preheated quartz banger: hot initial flash melt (285°C / 545°F) decaying smoothly down into the terpene sweet spot (215°C / 419°F).',
+        desc: 'Gentle Newton cooling curve: starts at 245°C (473°F) to melt cleanly, then decays exponentially down to 215°C (419°F) for cool, terp-rich pulls.',
         pointsC: [
-          { t: 0,  tempC: 285 },
-          { t: 8,  tempC: 268 },
-          { t: 18, tempC: 252 },
-          { t: 30, tempC: 238 },
-          { t: 42, tempC: 225 },
+          { t: 0,  tempC: 245 },
+          { t: 8,  tempC: 237 },
+          { t: 18, tempC: 230 },
+          { t: 30, tempC: 223 },
+          { t: 42, tempC: 218 },
           { t: 55, tempC: 215 }
         ]
       },
@@ -928,48 +945,48 @@
         id: 'rosin_ladder',
         name: 'Live Rosin Terpene Ladder (55s)',
         mode: 'step',
-        desc: 'Ascending connoisseur steps: 215°C (Pinene/Myrcene/Limonene flavor), 230°C (mid-spectrum body), 245°C (clean cannabinoid finish without scorching lipids).',
+        desc: 'Low-temp connoisseur steps: 210°C (delicate monoterpenes), 222°C (mid-spectrum body), 235°C (clean cannabinoid finish without harshness).',
         pointsC: [
-          { t: 0,  tempC: 215 },
-          { t: 18, tempC: 230 },
-          { t: 38, tempC: 245 },
-          { t: 55, tempC: 245 }
+          { t: 0,  tempC: 210 },
+          { t: 18, tempC: 222 },
+          { t: 38, tempC: 235 },
+          { t: 55, tempC: 235 }
         ]
       },
       {
         id: 'cold_start_ramp',
         name: 'Cold-Start Smooth Ramp (55s)',
         mode: 'smooth',
-        desc: 'Continuous ascending ramp (210°C → 250°C) that sweeps sequentially through every terpene boiling point like a cold-start torch pass.',
+        desc: 'Continuous ascending ramp (205°C → 235°C) that sweeps gently through terpene boiling points like a low-temp cold-start.',
         pointsC: [
-          { t: 0,  tempC: 210 },
-          { t: 20, tempC: 228 },
-          { t: 40, tempC: 242 },
-          { t: 55, tempC: 250 }
+          { t: 0,  tempC: 205 },
+          { t: 20, tempC: 217 },
+          { t: 40, tempC: 228 },
+          { t: 55, tempC: 235 }
         ]
       },
       {
         id: 'resin_cloud',
         name: 'Live Resin / BHO Flavor → Cloud (50s)',
         mode: 'step',
-        desc: 'Starts at 235°C for bright hydrocarbon-extracted terps, steps to 255°C for dense vapor, and finishes at 270°C to clear the bowl.',
+        desc: 'Starts at 220°C for bright terps, steps to 232°C for balanced vapor, and finishes at 245°C to clear the chamber.',
         pointsC: [
-          { t: 0,  tempC: 235 },
-          { t: 15, tempC: 255 },
-          { t: 35, tempC: 270 },
-          { t: 50, tempC: 270 }
+          { t: 0,  tempC: 220 },
+          { t: 15, tempC: 232 },
+          { t: 35, tempC: 245 },
+          { t: 50, tempC: 245 }
         ]
       },
       {
         id: 'flash_mellow',
         name: 'Flash Melt → Mellow Finish (55s)',
         mode: 'smooth',
-        desc: 'High initial energy (275°C) to rapidly melt bubble hash or larger dabs, then coasts down to 225°C for smooth backend pulls.',
+        desc: 'Starts at 240°C for a quick initial melt, then coasts down to 212°C for smooth, cool backend pulls.',
         pointsC: [
-          { t: 0,  tempC: 275 },
-          { t: 12, tempC: 252 },
-          { t: 30, tempC: 238 },
-          { t: 55, tempC: 225 }
+          { t: 0,  tempC: 240 },
+          { t: 12, tempC: 228 },
+          { t: 30, tempC: 219 },
+          { t: 55, tempC: 212 }
         ]
       }
     ];
@@ -1038,6 +1055,11 @@
       const list = document.getElementById('curvePointsList');
       list.innerHTML = '';
       activeCurve.pointsC.sort((a, b) => a.t - b.t);
+      if (activeCurve.pointsC.length >= 2) {
+        document.getElementById('genStartTemp').value = cToUnit(activeCurve.pointsC[0].tempC);
+        document.getElementById('genEndTemp').value = cToUnit(activeCurve.pointsC[activeCurve.pointsC.length - 1].tempC);
+        document.getElementById('genDurSec').value = activeCurve.pointsC[activeCurve.pointsC.length - 1].t;
+      }
       activeCurve.pointsC.forEach((pt, idx) => {
         const row = document.createElement('div');
         row.className = 'pt-row';
@@ -1076,6 +1098,52 @@
     function removeCurvePoint(idx) {
       if (activeCurve.pointsC.length <= 2) return;
       activeCurve.pointsC.splice(idx, 1);
+      renderCurveEditor();
+      drawCurveCanvas();
+    }
+
+    function generateCurveFromRange() {
+      const startC = Math.max(150, Math.min(340, unitToC(Number(document.getElementById('genStartTemp').value) || 215)));
+      const endC   = Math.max(150, Math.min(340, unitToC(Number(document.getElementById('genEndTemp').value) || 235)));
+      const dur    = Math.max(15, Math.min(120, Math.round(Number(document.getElementById('genDurSec').value) || 55)));
+      const shape  = document.getElementById('genShape').value;
+      const pts = [];
+
+      if (shape === 'linear') {
+        activeCurve.mode = 'smooth';
+        pts.push({ t: 0, tempC: startC }, { t: dur, tempC: endC });
+        activeCurve.desc = `Generated linear ramp from ${cToUnit(startC)}° to ${cToUnit(endC)}° over ${dur}s.`;
+      } else if (shape === 'ladder') {
+        activeCurve.mode = 'step';
+        const midC = Math.round((startC + endC) / 2);
+        const t1 = Math.round(dur * 0.33);
+        const t2 = Math.round(dur * 0.68);
+        pts.push({ t: 0, tempC: startC }, { t: t1, tempC: midC }, { t: t2, tempC: endC }, { t: dur, tempC: endC });
+        activeCurve.desc = `Generated 3-step ladder: ${cToUnit(startC)}° → ${cToUnit(midC)}° → ${cToUnit(endC)}° over ${dur}s.`;
+      } else if (shape === 'exp') {
+        activeCurve.mode = 'smooth';
+        // Exponential decay/approach: y(u) = end + (start - end) * (e^(-k*u) - e^-k) / (1 - e^-k)
+        const k = 2.6;
+        const denom = 1 - Math.exp(-k);
+        const steps = 5;
+        for (let i = 0; i <= steps; i++) {
+          const u = i / steps;
+          const factor = (Math.exp(-k * u) - Math.exp(-k)) / denom;
+          pts.push({ t: Math.round(u * dur), tempC: Math.round(endC + (startC - endC) * factor) });
+        }
+        activeCurve.desc = `Generated exponential curve from ${cToUnit(startC)}° to ${cToUnit(endC)}° over ${dur}s.`;
+      } else if (shape === 'ease_in') {
+        activeCurve.mode = 'smooth';
+        const steps = 5;
+        for (let i = 0; i <= steps; i++) {
+          const u = i / steps;
+          const factor = u * u; // quadratic ease-in: lingers near startC, ramps late
+          pts.push({ t: Math.round(u * dur), tempC: Math.round(startC + (endC - startC) * factor) });
+        }
+        activeCurve.desc = `Generated flavor-hold curve from ${cToUnit(startC)}° to ${cToUnit(endC)}° over ${dur}s.`;
+      }
+
+      activeCurve.pointsC = pts;
       renderCurveEditor();
       drawCurveCanvas();
     }
