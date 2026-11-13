@@ -1,0 +1,4 @@
+- Added 16 new achievements (23 total) across milestones, time-of-day, temp/inhalation styles, endurance, and hardware/LED customization
+- Tracked session start time, starting battery %, and natural completion vs early stop for accurate badge & duration recording
+- Grouped all session count milestones at the top of the Achievements screen
+- Documented Carta Sport & Carta 2 compatibility and uncaptured protocol bits in README.md and PROTOCOL.md
