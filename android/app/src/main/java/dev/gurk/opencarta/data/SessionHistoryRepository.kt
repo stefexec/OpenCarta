@@ -21,11 +21,15 @@ import kotlin.math.roundToInt
 data class DabSessionEntry(
     val id: String,
     val date: String,       // YYYY-MM-DD
-    val time: String,       // HH:mm
+    val time: String,       // HH:mm (end/log time)
     val temp: Int,
     val unitSymbol: String, // °C or °F
     val durationSec: Int,
-    val source: String      // "Live" or "Device Sync"
+    val source: String,     // "Live" or "Device Sync"
+    val startTime: String = time,
+    val timestampMs: Long = 0L,
+    val startBattery: Int = -1,
+    val completedNaturally: Boolean = true
 )
 
 data class MonthStats(
@@ -112,30 +116,57 @@ class SessionHistoryRepository(
     private var lastCapturedTemp = 230
     private var lastCapturedTimer = 55
     private var lastCapturedUnit = 0x22
+    private var sessionStartMs = 0L
+    private var sessionStartTime = ""
+    private var sessionStartBattery = -1
+    private var sessionMinRemSec = Int.MAX_VALUE
 
     init {
         scope.launch {
             bleManager.telemetryTicks.collect { tick ->
                 if (tick.remainingSec > 0) {
+                    if (lastRemSec == 0) {
+                        sessionStartMs = System.currentTimeMillis()
+                        sessionStartTime = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
+                        sessionStartBattery = bleManager.state.value.batteryPercent
+                        sessionMinRemSec = tick.remainingSec
+                    } else {
+                        sessionMinRemSec = minOf(sessionMinRemSec, tick.remainingSec)
+                    }
                     lastCapturedTemp = tick.waxTemp
                     lastCapturedTimer = bleManager.state.value.waxTimerSec
                     lastCapturedUnit = tick.unitByte
                 }
                 if (lastRemSec > 0 && tick.remainingSec == 0) {
+                    val nowMs = System.currentTimeMillis()
                     val today = LocalDate.now().toString()
                     val nowTime = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
                     val unitStr = if (lastCapturedUnit == 0x11) "°F" else "°C"
+                    val naturalFinish = sessionMinRemSec <= 2
+                    val actualElapsed = if (sessionStartMs > 0L) {
+                        ((nowMs - sessionStartMs) / 1000L).toInt().coerceAtLeast(1)
+                    } else {
+                        lastCapturedTimer
+                    }
                     addSession(
                         DabSessionEntry(
-                            id = "live_${System.currentTimeMillis()}",
+                            id = "live_$nowMs",
                             date = today,
                             time = nowTime,
                             temp = lastCapturedTemp,
                             unitSymbol = unitStr,
-                            durationSec = lastCapturedTimer,
-                            source = "Live"
+                            durationSec = if (naturalFinish) lastCapturedTimer else actualElapsed,
+                            source = "Live",
+                            startTime = sessionStartTime.ifEmpty { nowTime },
+                            timestampMs = if (sessionStartMs > 0L) sessionStartMs else nowMs,
+                            startBattery = sessionStartBattery,
+                            completedNaturally = naturalFinish
                         )
                     )
+                    sessionStartMs = 0L
+                    sessionStartTime = ""
+                    sessionStartBattery = -1
+                    sessionMinRemSec = Int.MAX_VALUE
                 }
                 lastRemSec = tick.remainingSec
             }
@@ -198,15 +229,20 @@ class SessionHistoryRepository(
             val sArr = JSONArray(prefs.getString("sessions_json", "[]") ?: "[]")
             for (i in 0 until sArr.length()) {
                 val o = sArr.getJSONObject(i)
+                val timeStr = o.getString("time")
                 sessions.add(
                     DabSessionEntry(
                         id = o.getString("id"),
                         date = o.getString("date"),
-                        time = o.getString("time"),
+                        time = timeStr,
                         temp = o.getInt("temp"),
                         unitSymbol = o.optString("unitSymbol", "°C"),
                         durationSec = o.getInt("durationSec"),
-                        source = o.optString("source", "Live")
+                        source = o.optString("source", "Live"),
+                        startTime = o.optString("startTime", timeStr),
+                        timestampMs = o.optLong("timestampMs", 0L),
+                        startBattery = o.optInt("startBattery", -1),
+                        completedNaturally = o.optBoolean("completedNaturally", true)
                     )
                 )
             }
@@ -231,6 +267,10 @@ class SessionHistoryRepository(
                     .put("unitSymbol", s.unitSymbol)
                     .put("durationSec", s.durationSec)
                     .put("source", s.source)
+                    .put("startTime", s.startTime)
+                    .put("timestampMs", s.timestampMs)
+                    .put("startBattery", s.startBattery)
+                    .put("completedNaturally", s.completedNaturally)
             )
         }
         val oObj = JSONObject()

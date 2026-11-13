@@ -72,6 +72,9 @@ class CartaBleManager(private val context: Context) {
     private val _offlineSessions = MutableSharedFlow<OfflineSessionRecord>(extraBufferCapacity = 32)
     val offlineSessions = _offlineSessions.asSharedFlow()
 
+    private val _ledCustomized = MutableSharedFlow<Unit>(extraBufferCapacity = 4)
+    val ledCustomized = _ledCustomized.asSharedFlow()
+
     private var gatt: BluetoothGatt? = null
     private var writeChar: BluetoothGattCharacteristic? = null
     private var notifyChar: BluetoothGattCharacteristic? = null
@@ -655,6 +658,7 @@ class CartaBleManager(private val context: Context) {
 
     fun sendLedConfig(slot: Int, config: LedPresetConfig) {
         val s = slot.coerceIn(1, 5)
+        _ledCustomized.tryEmit(Unit)
         _state.update {
             val updated = it.ledPresets.toMutableMap()
             updated[s] = config

@@ -75,8 +75,8 @@ class MainActivity : ComponentActivity() {
 
         bleManager = CartaBleManager(applicationContext)
         curveRepo = CurveRepository(applicationContext, bleManager)
-        achievementsRepo = AchievementsRepository(applicationContext, bleManager)
         historyRepo = SessionHistoryRepository(applicationContext, bleManager)
+        achievementsRepo = AchievementsRepository(applicationContext, bleManager, historyRepo, curveRepo)
 
         requestBlePermissionsAndScan()
 
