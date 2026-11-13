@@ -66,7 +66,7 @@ data class BleLogEntry(
 data class CartaState(
     val connectionStatus: ConnectionStatus = ConnectionStatus.DISCONNECTED,
     val continuedOffline: Boolean = false,
-    val deviceName: String = "Carta Sport",
+    val deviceName: String = "Carta",
     val deviceAddress: String = "",
     val modelNumber: String = "--",
     val serialNumber: String = "--",

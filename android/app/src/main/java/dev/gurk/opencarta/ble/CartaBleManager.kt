@@ -221,7 +221,7 @@ class CartaBleManager(private val context: Context) {
         val device = bluetoothAdapter?.getRemoteDevice(address) ?: return
         disconnect()
 
-        val cleanName = (knownName ?: device.name ?: "Carta Sport").replace("\u0000", "").trim()
+        val cleanName = (knownName ?: device.name ?: "Carta").replace("\u0000", "").trim()
         _state.update {
             it.copy(
                 connectionStatus = ConnectionStatus.CONNECTING,

@@ -129,8 +129,18 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val modelLabel = remember(state.modelNumber, state.deviceName) {
+                        val combined = "${state.modelNumber} ${state.deviceName}".uppercase()
+                        when {
+                            combined.contains("SPORT") -> "SPORT"
+                            combined.contains("CARTA 2") || combined.contains("CARTA2") -> "CARTA 2"
+                            state.modelNumber.isNotBlank() && state.modelNumber != "--" -> state.modelNumber.uppercase()
+                            state.deviceName.isNotBlank() -> state.deviceName.uppercase()
+                            else -> "CARTA"
+                        }
+                    }
                     Column {
-                        Text("SPORT", color = CartaColors.TextPrimary, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold)
+                        Text(modelLabel, color = CartaColors.TextPrimary, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold)
                         Text("iNTELLi-CORE", color = CartaColors.TextSecondary, fontSize = 11.sp, letterSpacing = 0.8.sp)
                     }
                     Row(

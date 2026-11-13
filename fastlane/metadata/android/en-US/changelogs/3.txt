@@ -1,0 +1,2 @@
+- Dynamically detect device model label (Carta Sport, Carta 2, or BLE model/name) on the Home screen instead of hardcoding "SPORT"
+- Genericized default device prompt/fallback strings to "Carta"

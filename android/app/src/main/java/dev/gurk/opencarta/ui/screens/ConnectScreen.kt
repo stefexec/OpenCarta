@@ -124,7 +124,7 @@ fun ConnectScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Enable Bluetooth to discover your Carta Sport.",
+                    text = "Enable Bluetooth to discover your Carta.",
                     color = CartaColors.TextSecondary,
                     fontSize = 13.sp,
                     textAlign = TextAlign.Center
