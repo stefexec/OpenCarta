@@ -25,12 +25,14 @@
 
 ---
 
-No account required. No telemetry. No cloud lock-in. Just fast, direct Bluetooth Low Energy control over your **Focus V Carta Sport**—built from scratch with Kotlin & Jetpack Compose alongside a zero-install Web Bluetooth app and full GATT protocol documentation.
+No account required. No telemetry. No cloud lock-in. Just fast, direct Bluetooth Low Energy control over your **Focus V Carta Sport** and **Carta 2**—built from scratch with Kotlin & Jetpack Compose alongside a zero-install Web Bluetooth app and full GATT protocol documentation.
+
+> **Tested Devices:** Verified on **Focus V Carta Sport** and **Focus V Carta 2**.
 
 ## 📥 Download
 
-- **Android APK (Recommended):** Grab the latest signed APK from [**GitHub Releases**](https://github.com/stefexec/OpenCarta/releases/latest).
-- **F-Droid:** Submission is currently in review ([`fdroiddata!57055`](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/57055)).
+- **Android APK (Recommended):** Grab the latest signed APK from [**GitHub Releases**](https://github.com/stefexec/OpenCarta/releases/latest) (works great with [Obtainium](https://github.com/ImranR98/Obtainium) for automatic updates).
+- **F-Droid:** Initial submission ([`fdroiddata!57055`](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/57055)) was closed under F-Droid's 3-month maintenance policy and will be resubmitted once eligible.
 
 > [!NOTE]
 > Android 12+ will ask for **Nearby devices** permission for BLE scanning. On Android 8–11, Android requires **Location** permission for Bluetooth LE scans (OpenCarta never collects or transmits location data).
@@ -62,7 +64,13 @@ No account required. No telemetry. No cloud lock-in. Just fast, direct Bluetooth
 - Includes live telemetry, preset editor, RGB LED control, Power Off, and the full Curve Studio.
 
 ### Full Reverse-Engineered BLE Protocol (`PROTOCOL.md`)
-- Complete documentation of the Carta Sport GATT services, characteristics, telemetry notifications, command opcodes (`0x11`, `0xaa`, `0xbb`, `0xcc`, `0xdd`, `0xee`, `0xfd`), and wire formats.
+- Complete documentation of the Carta Sport / Carta 2 GATT services, characteristics, telemetry notifications, command opcodes (`0x11`, `0xaa`, `0x22`–`0x55`, `0xcc`, `0xd1`, `0xd2`, `0xdd`, `0xe0`–`0xea`, `0xfa`/`0xfc`/`0xfd`), and wire formats.
+
+### Known Gaps & Unimplemented Protocol Bits
+- **Dry Herb Mode:** Herb preset tables (`0x44`/`0x55`) and temp/timer bytes are parsed and preserved, but live Dry Herb session switching/controls are not yet implemented in the main UI.
+- **Handshake Metadata (`0xce`, `0x82`):** Received on connect; not yet decoded or surfaced in the UI.
+- **Additional Status / Fault Bits:** `0x99` Byte 2 bit `0x40` (atomizer attached) is implemented, while remaining fault/short/overheat bits, `0x99` Byte 4 high nibble (`0x10`), `0xfc` Byte 6 session flags (`0x61`), and Scan Response Byte 18 (`0x08`) are still uncaptured.
+- **OTA & Counter Reset:** Telink OTA (`0x2b12`) and factory/dab-counter reset commands are not implemented.
 
 ## 🛠 Building from Source
 

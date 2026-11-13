@@ -1,6 +1,6 @@
 # Focus V Carta Sport — BLE Protocol Reference
 
-Reverse-engineered from `btsnoop_hci_261111_231847.log` captured against a Focus V Carta Sport (Telink Semiconductor BLE SoC).
+Reverse-engineered from `btsnoop_hci_261111_231847.log` (and subsequent charging / no-atomizer captures) against a Focus V Carta Sport (Telink Semiconductor BLE SoC). Verified compatible with **Carta Sport** and **Carta 2**.
 
 ---
 
@@ -263,6 +263,21 @@ When reconnecting after a session, the app fetches and clears any un-synced sess
 - **`0x55`, `0x44`, `0x33`, `0x22` (18 bytes each — Preset Tables):** 5 presets × 3 bytes (`uint16` temp + `uint8` seconds) for Herb °F (`0x55`), Herb °C (`0x44`), Concentrate °F (`0x33`), and Concentrate °C (`0x22`).
 - **`0xea`–`0xe6` (20 bytes each — LED Preset Tables):** Stored LED profiles for Slots 1–5 (`0xea` = Slot 1 .. `0xe6` = Slot 5).
 - **`0xd2` (7 bytes — LED & Sleep Timeouts):** `d2 07 [LED_Timeout_Sec_u16] [Sleep_Timeout_Sec_u16] d2`.
+
+---
+
+## 5. Unknown / Uncaptured Bytes & Unimplemented Features
+
+| Item | Observed Value(s) | Status / Hypothesis |
+| :--- | :--- | :--- |
+| **`0xce` (7 bytes)** | `ce 07 02 55 01 eb ce` | Sent repeatedly on handshake before preset tables; likely hardware/firmware/calibration metadata. Not parsed in OpenCarta. |
+| **`0x82` (8 bytes)** | `82 08 00 00 00 00 00 82` | Sent on handshake; always `0x00` in captures so far (possibly fault/error flags or curve state). Not parsed in OpenCarta. |
+| **`0x99` Byte 2 (other bits)** | `0x40`, `0x00` | Bit 6 (`0x40`) is atomizer attached; remaining bits are uncaptured (likely atomizer short, overheat, or herb/wax mode flags). |
+| **`0x99` Byte 4 (high nibble)** | `0x11` vs `0x01` | Low nibble is active preset (`1`–`5`, `0` = manual). High nibble (`0x10`) appears on initial standby/handshake and clears on interaction. |
+| **Dry Herb Mode** | `0x44`/`0x55` tables, `0x99` Bytes `8..9` & `14` | Herb preset tables and target temp/timer bytes are parsed and preserved in `0xcc`, but no live Dry Herb session or mode-switch capture has been taken yet. |
+| **`0xfc` Byte 6 (Sync Flags)** | `0x61` | Only captured on a completed Concentrate °C session; other values (cancelled early, Dry Herb, °F) are unconfirmed. |
+| **Scan Response Byte 18** | `0x08` | Byte after `^` in `{S3BL|S26CB1723~<Bat>^<0x08>}` — likely device state flags in advertising data. |
+| **Counter Reset / Telink OTA** | `0x2b12` (OTA char) | Dab counter reset / factory reset (if supported) and Telink OTA firmware flashing are not captured or implemented. |
 - **`0xce` (7 bytes):** Device/hardware version or state marker (`ce 07 02 55 01 ea ce` / `ce 07 02 55 01 e9 ce`).
 - **`0x82` (8 bytes):** `82 08 00 00 00 00 00 82`.
 - **`0xdd 0x01` (20 bytes — High-rate Session Telemetry):** Sent at ~4 Hz during heating (`dd 01 00 ...` while heating up; `dd 01 01 ...` once target temperature is reached).
