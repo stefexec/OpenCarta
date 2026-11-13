@@ -321,13 +321,20 @@ class AchievementsRepository(
         val hasLowBatteryFinish = completed.any { it.startBattery in 1..10 }
 
         val rawList = listOf(
-            // Culture & Milestones
+            // Session Count Milestones
             Achievement("first_flight", "First Flight", "Complete your first session recorded in the app", "1ST", if (hasFirstFlight) 1 else 0, 1),
+            Achievement("dab_100", "100 Dab Club", "Complete 100 sessions", "100", allTime.coerceAtMost(100), 100),
+            Achievement("high_council", "The High Council", "Reach 420 total sessions", "420", allTime.coerceAtMost(420), 420),
+            Achievement("dab_500", "500 Dab Master", "Complete 500 sessions", "500", allTime.coerceAtMost(500), 500),
+            Achievement("club_710", "710 Club", "Reach 710 total sessions or log one on July 10th", "710", if (has710Date) 710 else allTime.coerceAtMost(710), 710),
+            Achievement("dab_1000", "1000 Dab Legend", "Complete 1,000 sessions", "1000", allTime.coerceAtMost(1000), 1000),
+            Achievement("dab_2000", "2000 Dab Warrior", "Complete 2,000 sessions", "2000", allTime.coerceAtMost(2000), 2000),
+            Achievement("dab_3000", "3000 Dab Elite", "Complete 3,000 sessions", "3000", allTime.coerceAtMost(3000), 3000),
+
+            // Culture & Time of Day
             Achievement("the_ritual", "The Ritual", "Hit a session at exactly 4:20 AM or 4:20 PM", "4:20", if (hasRitual) 1 else 0, 1),
             Achievement("wake_and_bake", "Wake & Bake", "Complete a session between 5:00 AM and 8:00 AM", "5-8A", if (hasWakeAndBake) 1 else 0, 1),
             Achievement("night_owl", "Night Owl", "Start a session between 2:00 AM and 4:30 AM", "2-4A", if (hasNightOwl) 1 else 0, 1),
-            Achievement("high_council", "The High Council", "Reach 420 total sessions", "420", allTime.coerceAtMost(420), 420),
-            Achievement("club_710", "710 Club", "Reach 710 total sessions or log one on July 10th", "710", if (has710Date) 710 else allTime.coerceAtMost(710), 710),
 
             // Temperature & Inhalation Styles
             Achievement("terp_connoisseur", "Terp Connoisseur", "Complete a low-temp session under 440°F / 225°C", "LOW", if (hasTerp) 1 else 0, 1),
@@ -345,14 +352,7 @@ class AchievementsRepository(
 
             // Hardware & App Exploration
             Achievement("living_on_the_edge", "Living on the Edge", "Finish a session starting with ≤ 10% battery", "≤10%", if (hasLowBatteryFinish) 1 else 0, 1),
-            Achievement("glow_up", "Glow Up", "Customize and upload an RGB LED light profile", "RGB", if (glowUpUnlocked) 1 else 0, 1),
-
-            // Lifetime Volume Milestones
-            Achievement("dab_100", "100 Dab Club", "Complete 100 sessions", "100", allTime.coerceAtMost(100), 100),
-            Achievement("dab_500", "500 Dab Master", "Complete 500 sessions", "500", allTime.coerceAtMost(500), 500),
-            Achievement("dab_1000", "1000 Dab Legend", "Complete 1,000 sessions", "1000", allTime.coerceAtMost(1000), 1000),
-            Achievement("dab_2000", "2000 Dab Warrior", "Complete 2,000 sessions", "2000", allTime.coerceAtMost(2000), 2000),
-            Achievement("dab_3000", "3000 Dab Elite", "Complete 3,000 sessions", "3000", allTime.coerceAtMost(3000), 3000)
+            Achievement("glow_up", "Glow Up", "Customize and upload an RGB LED light profile", "RGB", if (glowUpUnlocked) 1 else 0, 1)
         )
 
         var unlockedChanged = false
