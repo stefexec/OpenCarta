@@ -1,0 +1,5 @@
+- Added charging status indicator (0x99 byte 16) in battery badge
+- Added atomizer detection (0x99 byte 2) to disable heating controls and Run Curve when no atomizer is attached while keeping dab history intact
+- Refined device graphic proportions and base LED strip alignment
+- Added sleek idle auto-off countdown (m:ss) and progress bar under the device graphic
+- Fixed slider sync when cycling presets on the device or dragging sliders
