@@ -119,25 +119,40 @@ class CartaBleManager(private val context: Context) {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             val device = result.device ?: return
             val address = device.address ?: return
-            val advName = result.scanRecord?.deviceName ?: device.name ?: ""
+            val scanRecord = result.scanRecord
+            val advName = scanRecord?.deviceName ?: device.name ?: ""
             val cleanName = advName.replace("\u0000", "").trim()
-            val serviceUuids = result.scanRecord?.serviceUuids?.map { it.uuid } ?: emptyList()
+            val serviceUuids = scanRecord?.serviceUuids?.map { it.uuid } ?: emptyList()
+            val parsedAdv = parseCartaAdvertisement(
+                scanRecord?.getManufacturerSpecificData(CartaUuids.TELINK_MANUFACTURER_ID)
+            )
 
-            val isCarta = serviceUuids.contains(CartaUuids.CARTA_SERVICE) ||
-                cleanName.startsWith("Pfeifi", ignoreCase = true) ||
-                cleanName.startsWith("CARTA", ignoreCase = true) ||
-                cleanName.startsWith("Focus", ignoreCase = true)
-
-            if (!_showAllBleDevices.value && !isCarta) return
-
-            val displayName = cleanName.ifEmpty { "Unknown BLE ($address)" }
             val now = System.currentTimeMillis()
             synchronized(discoveredMap) {
+                val existing = discoveredMap[address]?.first
+                val isCarta = parsedAdv != null ||
+                    serviceUuids.contains(CartaUuids.CARTA_SERVICE) ||
+                    cleanName.startsWith("Pfeifi", ignoreCase = true) ||
+                    cleanName.startsWith("CARTA", ignoreCase = true) ||
+                    cleanName.startsWith("Focus", ignoreCase = true) ||
+                    existing?.isCartaMatch == true
+
+                if (!_showAllBleDevices.value && !isCarta) return
+
+                val displayName = when {
+                    cleanName.isNotEmpty() -> cleanName
+                    existing != null && !existing.name.startsWith("Unknown BLE") -> existing.name
+                    else -> "Unknown BLE ($address)"
+                }
+
                 discoveredMap[address] = ScannedDevice(
                     address = address,
                     name = displayName,
                     rssi = result.rssi,
-                    isCartaMatch = isCarta
+                    isCartaMatch = isCarta,
+                    batteryPercent = parsedAdv?.batteryPercent ?: existing?.batteryPercent,
+                    modelNumber = parsedAdv?.modelNumber ?: existing?.modelNumber,
+                    serialNumber = parsedAdv?.serialNumber ?: existing?.serialNumber
                 ) to now
                 val sorted = discoveredMap.values
                     .map { it.first }

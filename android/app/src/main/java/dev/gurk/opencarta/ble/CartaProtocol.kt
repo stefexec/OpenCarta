@@ -15,6 +15,8 @@ object CartaUuids {
     val DIS_MODEL: UUID = UUID.fromString("00002a24-0000-1000-8000-00805f9b34fb")
     val DIS_SERIAL: UUID = UUID.fromString("00002a25-0000-1000-8000-00805f9b34fb")
     val DIS_FIRMWARE: UUID = UUID.fromString("00002a28-0000-1000-8000-00805f9b34fb")
+
+    const val TELINK_MANUFACTURER_ID = 0x0211
 }
 
 enum class LedAnimationMode(val byteValue: Int, val label: String) {
@@ -49,11 +51,47 @@ enum class ConnectionStatus {
     CONNECTED
 }
 
+data class CartaAdvertisement(
+    val modelNumber: String?,
+    val serialNumber: String?,
+    val batteryPercent: Int?
+)
+
+/**
+ * Parses Telink (0x0211) scan-response manufacturer data:
+ * `{<model>|<serial>~<battery_uint8>^<status_uint8>}`
+ */
+fun parseCartaAdvertisement(data: ByteArray?): CartaAdvertisement? {
+    if (data == null || data.size < 8) return null
+    if (data[0] != '{'.code.toByte() || data[data.lastIndex] != '}'.code.toByte()) return null
+
+    val pipeIdx = data.indexOf('|'.code.toByte())
+    val tildeIdx = data.indexOf('~'.code.toByte())
+    val caretIdx = data.indexOf('^'.code.toByte())
+    if (pipeIdx <= 1 || tildeIdx <= pipeIdx + 1 || caretIdx != tildeIdx + 2 || caretIdx >= data.lastIndex) {
+        return null
+    }
+
+    val model = String(data, 1, pipeIdx - 1, Charsets.US_ASCII).trim().ifEmpty { null }
+    val serial = String(data, pipeIdx + 1, tildeIdx - pipeIdx - 1, Charsets.US_ASCII).trim().ifEmpty { null }
+    val rawBattery = data[tildeIdx + 1].toInt() and 0xFF
+    val battery = if (rawBattery in 0..100) rawBattery else null
+
+    return CartaAdvertisement(
+        modelNumber = model,
+        serialNumber = serial,
+        batteryPercent = battery
+    )
+}
+
 data class ScannedDevice(
     val address: String,
     val name: String,
     val rssi: Int,
-    val isCartaMatch: Boolean
+    val isCartaMatch: Boolean,
+    val batteryPercent: Int? = null,
+    val modelNumber: String? = null,
+    val serialNumber: String? = null
 )
 
 data class BleLogEntry(

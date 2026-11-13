@@ -33,6 +33,7 @@ import dev.gurk.opencarta.ble.ConnectionStatus
 import dev.gurk.opencarta.ble.ScannedDevice
 import dev.gurk.opencarta.ui.components.CartaDeviceGraphic
 import dev.gurk.opencarta.ui.components.OpenCartaBrandLogo
+import dev.gurk.opencarta.ui.components.batteryIconFor
 import dev.gurk.opencarta.ui.theme.CartaColors
 
 @Composable
@@ -187,12 +188,32 @@ fun ConnectScreen(
                             ledsEnabled = true
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            imageVector = Icons.Default.BatteryStd,
-                            contentDescription = null,
-                            tint = CartaColors.TextSecondary,
-                            modifier = Modifier.size(22.dp)
-                        )
+                        val battery = device.batteryPercent
+                        if (battery != null) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = batteryIconFor(battery),
+                                    contentDescription = "Battery $battery%",
+                                    tint = if (battery <= 20) CartaColors.Danger else CartaColors.Mint,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Text(
+                                    text = "$battery%",
+                                    color = CartaColors.TextSecondary,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.BatteryStd,
+                                contentDescription = null,
+                                tint = CartaColors.TextSecondary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))

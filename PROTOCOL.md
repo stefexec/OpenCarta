@@ -8,6 +8,8 @@ Reverse-engineered from `btsnoop_hci_261111_231847.log` captured against a Focus
 
 - **MAC Address:** `a4:c1:38:f6:6d:b7` (OUI `a4:c1:38` — Telink Semiconductor)
 - **Advertised Name:** `Pfeifi McPfeifengesicht` (null-padded in advertisement data)
+- **Scan Response Manufacturer Data (`0xff`, Company ID `0x0211` Telink Semiconductor):**
+  20-byte payload `{<Model>|<Serial>~<Battery%>^<0x08>}`, e.g. `7b 53 33 42 4c 7c 53 32 36 43 42 31 37 32 33 7e 52 5e 08 7d` (`{S3BL|S26CB1723~` + `0x52` (82%) + `^` + `0x08` + `}`). Broadcasts live battery percentage before pairing/connecting.
 - **Device Information Service (`0x180a`):**
   - **Model Number (`0x2a24`, Handle `0x0010`):** `S3BL`
   - **Serial Number (`0x2a25`, Handle `0x0012`):** `S26CB1723`

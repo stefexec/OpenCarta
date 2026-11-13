@@ -1,0 +1,4 @@
+- Show pre-connection battery percentage & icon on the scan screen (parsed from BLE advertisement)
+- Keep screen awake while the app is open
+- Documented advertisement battery field in PROTOCOL.md
+
