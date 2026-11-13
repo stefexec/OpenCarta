@@ -52,14 +52,27 @@ fun HomeScreen(
     val minTemp = if (state.isFahrenheit) 300 else 150
     val maxTemp = if (state.isFahrenheit) 650 else 340
 
-    var sliderTemp by remember(state.waxTemp, state.unitByte) { mutableIntStateOf(state.waxTemp) }
-    var sliderTimer by remember(state.waxTimerSec) { mutableIntStateOf(state.waxTimerSec.coerceIn(10, 120)) }
+    val activePreset = if (state.isFahrenheit) {
+        state.concentratePresetsF[state.activeHeatPreset]
+    } else {
+        state.concentratePresetsC[state.activeHeatPreset]
+    }
+    val syncedTemp = if (state.isConnected) state.waxTemp else (activePreset?.temp ?: state.waxTemp)
+    val syncedTimer = if (state.isConnected) state.waxTimerSec else (activePreset?.timeSec ?: state.waxTimerSec)
 
-    // Debounced live preview (0xcc with action=0x00, slot=0x00)
-    LaunchedEffect(sliderTemp) {
-        if (sliderTemp != state.waxTemp && state.isConnected) {
-            delay(150)
-            onTempLiveChange(sliderTemp)
+    var sliderTemp by remember { mutableIntStateOf(syncedTemp) }
+    var sliderTimer by remember { mutableIntStateOf(syncedTimer.coerceIn(10, 120)) }
+    var isDraggingTemp by remember { mutableStateOf(false) }
+    var isDraggingTimer by remember { mutableStateOf(false) }
+
+    LaunchedEffect(syncedTemp, state.unitByte) {
+        if (!isDraggingTemp) {
+            sliderTemp = syncedTemp
+        }
+    }
+    LaunchedEffect(syncedTimer) {
+        if (!isDraggingTimer) {
+            sliderTimer = syncedTimer.coerceIn(10, 120)
         }
     }
 
@@ -85,7 +98,7 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                BatteryBadge(state.batteryPercent, state.isConnected)
+                BatteryBadge(state.batteryPercent, state.isConnected, state.isCharging)
                 Box(
                     modifier = Modifier
                         .size(36.dp)
@@ -109,14 +122,67 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            CartaDeviceGraphic(
-                modifier = Modifier
-                    .width(142.dp)
-                    .height(198.dp),
-                ledColors = activeLedColors,
-                ledsEnabled = state.activeLedPreset > 0,
-                isHeating = state.isSessionActive
-            )
+            Column(
+                modifier = Modifier.width(142.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                CartaDeviceGraphic(
+                    modifier = Modifier
+                        .width(142.dp)
+                        .height(180.dp),
+                    ledColors = activeLedColors,
+                    ledsEnabled = state.activeLedPreset > 0,
+                    isHeating = state.isSessionActive
+                )
+
+                // Sleek Auto-Off / Idle Counter aligned next to Live Temp
+                val idleFraction = when {
+                    !state.isConnected -> 0f
+                    state.standbyCountdown <= 0 -> 1f
+                    else -> (state.standbyCountdown / 239f).coerceIn(0f, 1f)
+                }
+                val idleText = when {
+                    !state.isConnected -> "IDLE --"
+                    state.isSessionActive -> "HEATING"
+                    state.standbyCountdown <= 0 -> "ACTIVE"
+                    else -> "IDLE ${state.standbyCountdown}s"
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Text(
+                        text = idleText,
+                        color = CartaColors.TextMuted,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.6.sp
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(2.5.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(CartaColors.SurfaceElevated)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(idleFraction)
+                                .fillMaxHeight()
+                                .clip(RoundedCornerShape(50))
+                                .background(
+                                    if (!state.isConnected) CartaColors.TextMuted.copy(alpha = 0.3f)
+                                    else if (state.isSessionActive) CartaColors.Danger.copy(alpha = 0.8f)
+                                    else CartaColors.TextMuted.copy(alpha = 0.7f)
+                                )
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.width(8.dp))
 
@@ -179,12 +245,15 @@ fun HomeScreen(
                 }
 
                 // Live Temp Pill
+                val noAtomizer = state.isConnected && !state.hasAtomizer
                 val tempPhase = when {
+                    noAtomizer -> "NO ATOMIZER"
                     state.isPreheating -> "PRE-HEAT ${state.remainingSec}s"
                     state.isSessionActive -> "ACTIVE ${state.remainingSec}s"
                     else -> "AMBIENT"
                 }
                 val tempDotColor = when {
+                    noAtomizer -> CartaColors.Warning
                     state.isSessionActive -> CartaColors.Danger
                     state.isConnected -> CartaColors.Mint
                     else -> CartaColors.TextMuted
@@ -204,12 +273,17 @@ fun HomeScreen(
                         Text("LIVE TEMP", color = CartaColors.TextSecondary, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
                     }
                     Text(
-                        text = if (state.isConnected) "${state.currentTemp}${state.unitSymbol}" else "--${state.unitSymbol}",
+                        text = if (state.isConnected && state.hasAtomizer) "${state.currentTemp}${state.unitSymbol}" else "--${state.unitSymbol}",
                         color = CartaColors.TextPrimary,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    Text(tempPhase, color = CartaColors.TextMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = tempPhase,
+                        color = if (noAtomizer) CartaColors.Warning else CartaColors.TextMuted,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
@@ -259,35 +333,49 @@ fun HomeScreen(
             }
 
             // Sesh Preset Card
+            val heatingEnabled = !(state.isConnected && !state.hasAtomizer)
             Row(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(14.dp))
                     .background(CartaColors.Surface)
                     .border(1.dp, CartaColors.Border, RoundedCornerShape(14.dp))
-                    .clickable(onClick = onOpenSeshEditor)
+                    .clickable(enabled = heatingEnabled, onClick = onOpenSeshEditor)
                     .padding(horizontal = 14.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("SESH\nPRESET", color = CartaColors.TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, lineHeight = 14.sp)
+                Text(
+                    "SESH\nPRESET",
+                    color = if (heatingEnabled) CartaColors.TextSecondary else CartaColors.TextMuted,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 14.sp
+                )
                 Box(
                     modifier = Modifier
                         .size(38.dp)
                         .clip(CircleShape)
-                        .border(2.dp, CartaColors.Blue, CircleShape),
+                        .border(2.dp, if (heatingEnabled) CartaColors.Blue else CartaColors.TextMuted.copy(alpha = 0.4f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "${state.activeHeatPreset}",
-                        color = CartaColors.TextPrimary,
+                        color = if (heatingEnabled) CartaColors.TextPrimary else CartaColors.TextMuted,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
-                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = CartaColors.TextSecondary, modifier = Modifier.size(18.dp))
+                Icon(
+                    Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = if (heatingEnabled) CartaColors.TextSecondary else CartaColors.TextMuted.copy(alpha = 0.5f),
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
+
+        val heatingEnabled = !(state.isConnected && !state.hasAtomizer)
 
         // Temperature Slider Row
         SliderControlBlock(
@@ -295,13 +383,23 @@ fun HomeScreen(
             valueText = "$sliderTemp°",
             value = sliderTemp.toFloat(),
             valueRange = minTemp.toFloat()..maxTemp.toFloat(),
+            enabled = heatingEnabled,
             onMinus = {
                 sliderTemp = (sliderTemp - 1).coerceIn(minTemp, maxTemp)
+                onTempLiveChange(sliderTemp)
             },
             onPlus = {
                 sliderTemp = (sliderTemp + 1).coerceIn(minTemp, maxTemp)
+                onTempLiveChange(sliderTemp)
             },
-            onValueChange = { sliderTemp = it.roundToInt() }
+            onValueChange = {
+                isDraggingTemp = true
+                sliderTemp = it.roundToInt()
+            },
+            onValueChangeFinished = {
+                isDraggingTemp = false
+                onTempLiveChange(sliderTemp)
+            }
         )
 
         // Duration Slider Row
@@ -312,6 +410,7 @@ fun HomeScreen(
             valueText = "$mins:${secs.toString().padStart(2, '0')}",
             value = sliderTimer.toFloat(),
             valueRange = 10f..120f,
+            enabled = heatingEnabled,
             onMinus = {
                 sliderTimer = (sliderTimer - 5).coerceIn(10, 120)
                 onTimerLiveChange(sliderTimer)
@@ -321,9 +420,11 @@ fun HomeScreen(
                 onTimerLiveChange(sliderTimer)
             },
             onValueChange = {
+                isDraggingTimer = true
                 sliderTimer = it.roundToInt()
             },
             onValueChangeFinished = {
+                isDraggingTimer = false
                 onTimerLiveChange(sliderTimer)
             }
         )
@@ -331,7 +432,7 @@ fun HomeScreen(
         // Primary CTA Button: TAP TO WARM UP / STOP SESSION
         Button(
             onClick = { if (state.isSessionActive) onStopSession() else onStartSession() },
-            enabled = state.isConnected,
+            enabled = state.isConnected && state.hasAtomizer,
             colors = ButtonDefaults.buttonColors(
                 containerColor = if (state.isSessionActive) CartaColors.Danger else CartaColors.Mint,
                 contentColor = if (state.isSessionActive) Color.White else Color.Black,
@@ -350,7 +451,11 @@ fun HomeScreen(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = if (state.isSessionActive) "STOP SESSION (${state.remainingSec}s)" else "TAP TO WARM UP",
+                text = when {
+                    state.isSessionActive -> "STOP SESSION (${state.remainingSec}s)"
+                    state.isConnected && !state.hasAtomizer -> "NO ATOMIZER"
+                    else -> "TAP TO WARM UP"
+                },
                 fontSize = 15.sp,
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 1.sp
@@ -391,6 +496,7 @@ fun SliderControlBlock(
     valueText: String,
     value: Float,
     valueRange: ClosedFloatingPointRange<Float>,
+    enabled: Boolean = true,
     onMinus: () -> Unit,
     onPlus: () -> Unit,
     onValueChange: (Float) -> Unit,
@@ -402,19 +508,25 @@ fun SliderControlBlock(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(label, color = CartaColors.TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp)
+            Text(
+                label,
+                color = if (enabled) CartaColors.TextSecondary else CartaColors.TextMuted,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.sp
+            )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                CircleStepButton("-", onMinus)
+                CircleStepButton("-", enabled = enabled, onClick = onMinus)
                 Text(
                     text = valueText,
-                    color = CartaColors.TextPrimary,
+                    color = if (enabled) CartaColors.TextPrimary else CartaColors.TextMuted,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
                 )
-                CircleStepButton("+", onPlus)
+                CircleStepButton("+", enabled = enabled, onClick = onPlus)
             }
         }
         CartaSleekSlider(
@@ -422,22 +534,28 @@ fun SliderControlBlock(
             onValueChange = onValueChange,
             onValueChangeFinished = onValueChangeFinished,
             valueRange = valueRange,
+            enabled = enabled,
             modifier = Modifier.fillMaxWidth()
         )
     }
 }
 
 @Composable
-fun CircleStepButton(symbol: String, onClick: () -> Unit) {
+fun CircleStepButton(symbol: String, enabled: Boolean = true, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .size(34.dp)
             .clip(CircleShape)
-            .background(CartaColors.SurfaceElevated)
-            .clickable(onClick = onClick),
+            .background(if (enabled) CartaColors.SurfaceElevated else CartaColors.Surface)
+            .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Text(symbol, color = CartaColors.TextPrimary, fontSize = 18.sp, fontWeight = FontWeight.Medium)
+        Text(
+            symbol,
+            color = if (enabled) CartaColors.TextPrimary else CartaColors.TextMuted.copy(alpha = 0.45f),
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 

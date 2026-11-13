@@ -65,14 +65,14 @@ fun CartaDeviceGraphic(
             )
         }
 
-        // Glass top cone
+        // Glass top cone (original proportions, shifted slightly left for atomizer breathing room)
         val glassPath = Path().apply {
-            moveTo(w * 0.37f, h * 0.08f)
-            quadraticTo(w * 0.43f, h * 0.04f, w * 0.49f, h * 0.08f)
-            lineTo(w * 0.62f, h * 0.28f)
-            lineTo(w * 0.60f, h * 0.50f)
-            lineTo(w * 0.25f, h * 0.50f)
-            lineTo(w * 0.24f, h * 0.28f)
+            moveTo(w * 0.35f, h * 0.08f)
+            quadraticTo(w * 0.41f, h * 0.04f, w * 0.47f, h * 0.08f)
+            lineTo(w * 0.60f, h * 0.28f)
+            lineTo(w * 0.58f, h * 0.50f)
+            lineTo(w * 0.23f, h * 0.50f)
+            lineTo(w * 0.22f, h * 0.28f)
             close()
         }
         drawPath(
@@ -83,8 +83,8 @@ fun CartaDeviceGraphic(
                     Color(0xFF141A1D),
                     Color(0xFF222E32)
                 ),
-                start = Offset(w * 0.24f, h * 0.1f),
-                end = Offset(w * 0.62f, h * 0.5f)
+                start = Offset(w * 0.22f, h * 0.1f),
+                end = Offset(w * 0.60f, h * 0.5f)
             )
         )
         drawPath(
@@ -96,7 +96,7 @@ fun CartaDeviceGraphic(
         // Inner glass percolator pillar
         drawRoundRect(
             color = Color(0xFF3A484D).copy(alpha = 0.65f),
-            topLeft = Offset(w * 0.37f, h * 0.18f),
+            topLeft = Offset(w * 0.35f, h * 0.18f),
             size = Size(w * 0.12f, h * 0.28f),
             cornerRadius = CornerRadius(12f, 12f)
         )
@@ -107,33 +107,53 @@ fun CartaDeviceGraphic(
                 brush = Brush.horizontalGradient(
                     colors = listOf(primaryGlow.copy(alpha = 0.45f * pulse), secondaryGlow.copy(alpha = 0.45f * pulse))
                 ),
-                topLeft = Offset(w * 0.25f, h * 0.44f),
+                topLeft = Offset(w * 0.23f, h * 0.44f),
                 size = Size(w * 0.35f, h * 0.06f)
             )
         }
 
-        // Atomizer & carb cap on right
+        // Atomizer & carb cap on right (with clean gap from glass, inside shoulder)
         drawRoundRect(
             color = Color(0xFF202427),
-            topLeft = Offset(w * 0.63f, h * 0.36f),
-            size = Size(w * 0.19f, h * 0.15f),
-            cornerRadius = CornerRadius(10f, 10f)
+            topLeft = Offset(w * 0.625f, h * 0.375f),
+            size = Size(w * 0.15f, h * 0.135f),
+            cornerRadius = CornerRadius(9f, 9f)
         )
         drawRoundRect(
             color = Color(0xFF343A3F),
-            topLeft = Offset(w * 0.65f, h * 0.32f),
-            size = Size(w * 0.15f, h * 0.06f),
-            cornerRadius = CornerRadius(8f, 8f)
+            topLeft = Offset(w * 0.642f, h * 0.335f),
+            size = Size(w * 0.115f, h * 0.05f),
+            cornerRadius = CornerRadius(7f, 7f)
         )
 
-        // Main ergonomic body
+        // Main ergonomic hourglass body (tucks cleanly into base LED strip)
         val bodyPath = Path().apply {
             moveTo(w * 0.23f, h * 0.50f)
-            lineTo(w * 0.80f, h * 0.50f)
-            quadraticTo(w * 0.85f, h * 0.58f, w * 0.71f, h * 0.66f)
-            quadraticTo(w * 0.65f, h * 0.72f, w * 0.67f, h * 0.89f)
-            lineTo(w * 0.21f, h * 0.89f)
-            quadraticTo(w * 0.18f, h * 0.70f, w * 0.23f, h * 0.50f)
+            lineTo(w * 0.79f, h * 0.50f)
+            // Right shoulder -> pinched waist -> flared base
+            cubicTo(
+                w * 0.82f, h * 0.57f,
+                w * 0.65f, h * 0.63f,
+                w * 0.64f, h * 0.71f
+            )
+            cubicTo(
+                w * 0.63f, h * 0.77f,
+                w * 0.655f, h * 0.83f,
+                w * 0.665f, h * 0.87f
+            )
+            // Bottom edge (hidden behind LED strip)
+            lineTo(w * 0.215f, h * 0.87f)
+            // Left base -> pinched waist -> left shoulder
+            cubicTo(
+                w * 0.225f, h * 0.82f,
+                w * 0.27f, h * 0.77f,
+                w * 0.27f, h * 0.70f
+            )
+            cubicTo(
+                w * 0.27f, h * 0.62f,
+                w * 0.215f, h * 0.56f,
+                w * 0.23f, h * 0.50f
+            )
             close()
         }
         drawPath(
@@ -154,25 +174,25 @@ fun CartaDeviceGraphic(
             style = Stroke(width = 2f)
         )
 
-        // Subtle curved grip lines
+        // Subtle curved grip lines following the waist
         drawLine(
             color = Color(0xFF2C3236),
-            start = Offset(w * 0.22f, h * 0.64f),
-            end = Offset(w * 0.64f, h * 0.75f),
-            strokeWidth = 2f
+            start = Offset(w * 0.27f, h * 0.66f),
+            end = Offset(w * 0.64f, h * 0.73f),
+            strokeWidth = 1.8f
         )
         drawLine(
             color = Color(0xFF212629),
-            start = Offset(w * 0.22f, h * 0.73f),
-            end = Offset(w * 0.65f, h * 0.82f),
-            strokeWidth = 2f
+            start = Offset(w * 0.25f, h * 0.76f),
+            end = Offset(w * 0.64f, h * 0.82f),
+            strokeWidth = 1.8f
         )
 
         // Small "V" button emblem
         val vPath = Path().apply {
-            moveTo(w * 0.34f, h * 0.54f)
-            lineTo(w * 0.375f, h * 0.59f)
-            lineTo(w * 0.41f, h * 0.54f)
+            moveTo(w * 0.36f, h * 0.54f)
+            lineTo(w * 0.395f, h * 0.59f)
+            lineTo(w * 0.43f, h * 0.54f)
         }
         drawPath(
             path = vPath,
@@ -180,7 +200,7 @@ fun CartaDeviceGraphic(
             style = Stroke(width = 2.5f, cap = StrokeCap.Round, join = StrokeJoin.Round)
         )
 
-        // Glowing LED base ring
+        // Glowing LED base ring (sits cleanly below body bottom stroke at 0.87f)
         val baseRingColor = if (ledsEnabled || isHeating) primaryGlow else Color(0xFF2C3236)
         val baseRingColor2 = if (ledsEnabled || isHeating) secondaryGlow else Color(0xFF2C3236)
         drawRoundRect(
@@ -190,16 +210,16 @@ fun CartaDeviceGraphic(
                     baseRingColor2.copy(alpha = if (ledsEnabled || isHeating) pulse else 1f)
                 )
             ),
-            topLeft = Offset(w * 0.21f, h * 0.855f),
-            size = Size(w * 0.46f, h * 0.025f),
+            topLeft = Offset(w * 0.2125f, h * 0.874f),
+            size = Size(w * 0.455f, h * 0.026f),
             cornerRadius = CornerRadius(6f, 6f)
         )
 
         // Foot base
         drawRoundRect(
             color = Color(0xFF0E1012),
-            topLeft = Offset(w * 0.22f, h * 0.88f),
-            size = Size(w * 0.44f, h * 0.035f),
+            topLeft = Offset(w * 0.2175f, h * 0.90f),
+            size = Size(w * 0.445f, h * 0.032f),
             cornerRadius = CornerRadius(8f, 8f)
         )
     }

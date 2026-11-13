@@ -346,9 +346,11 @@ class CurveRepository(
     }
 
     fun startCurveSession() {
+        val bleState = bleManager.state.value
+        if (!bleState.isConnected || !bleState.hasAtomizer) return
         val curve = _activeCurve.value
         val dur = curve.durationSec
-        val fahrenheit = bleManager.state.value.isFahrenheit
+        val fahrenheit = bleState.isFahrenheit
         val startTemp = evalCurveTempUnit(0, fahrenheit)
 
         _runnerState.value = CurveRunnerState(

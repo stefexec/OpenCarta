@@ -117,6 +117,8 @@ data class CartaState(
     val waxTemp: Int = 230,
     val remainingSec: Int = 0,
     val batteryPercent: Int = 0,
+    val isCharging: Boolean = false,
+    val hasAtomizer: Boolean = false,
     val activeHeatPreset: Int = 1, // 1..5 (0 = manual)
     val activeLedPreset: Int = 5,  // 0 = OFF, 1..5
     val ledBrightness: Int = 8,    // 2 = 20%, 8 = 80%

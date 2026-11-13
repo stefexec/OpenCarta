@@ -38,6 +38,7 @@ fun CurveStudioCard(
     runnerState: CurveRunnerState,
     isFahrenheit: Boolean,
     isConnected: Boolean,
+    hasAtomizer: Boolean = true,
     onSelectCurve: (String) -> Unit,
     onSetInterpMode: (CurveInterpMode) -> Unit,
     onUpdatePoint: (Int, Int?, Int?) -> Unit,
@@ -375,7 +376,7 @@ fun CurveStudioCard(
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
             Button(
                 onClick = onStartCurve,
-                enabled = isConnected && !runnerState.running,
+                enabled = isConnected && hasAtomizer && !runnerState.running,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = CartaColors.Mint,
                     contentColor = Color.Black,
@@ -387,7 +388,11 @@ fun CurveStudioCard(
             ) {
                 Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("RUN CURVE", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text(
+                    if (isConnected && !hasAtomizer) "NO ATOMIZER" else "RUN CURVE",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                )
             }
             if (runnerState.running) {
                 Button(

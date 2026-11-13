@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Battery3Bar
 import androidx.compose.material.icons.filled.Battery4Bar
 import androidx.compose.material.icons.filled.Battery5Bar
 import androidx.compose.material.icons.filled.Battery6Bar
+import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -65,22 +66,27 @@ fun batteryIconFor(percent: Int) = when {
 }
 
 @Composable
-fun BatteryBadge(percent: Int, isConnected: Boolean) {
+fun BatteryBadge(percent: Int, isConnected: Boolean, isCharging: Boolean = false) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
             text = if (isConnected) "$percent%" else "--%",
-            color = CartaColors.TextSecondary,
+            color = if (isConnected && isCharging) CartaColors.Mint else CartaColors.TextSecondary,
             fontSize = 13.sp,
-            fontWeight = FontWeight.Medium
+            fontWeight = if (isConnected && isCharging) FontWeight.SemiBold else FontWeight.Medium
         )
         Icon(
-            imageVector = if (isConnected) batteryIconFor(percent) else Icons.Default.Battery0Bar,
-            contentDescription = "Battery",
+            imageVector = when {
+                !isConnected -> Icons.Default.Battery0Bar
+                isCharging -> Icons.Default.BatteryChargingFull
+                else -> batteryIconFor(percent)
+            },
+            contentDescription = if (isCharging) "Battery charging" else "Battery",
             tint = when {
                 !isConnected -> CartaColors.TextMuted
+                isCharging -> CartaColors.Mint
                 percent <= 20 -> CartaColors.Danger
                 else -> CartaColors.Mint
             },
@@ -107,6 +113,7 @@ fun CartaSleekSlider(
     onValueChange: (Float) -> Unit,
     valueRange: ClosedFloatingPointRange<Float>,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     onValueChangeFinished: () -> Unit = {}
 ) {
     Slider(
@@ -114,6 +121,7 @@ fun CartaSleekSlider(
         onValueChange = onValueChange,
         onValueChangeFinished = onValueChangeFinished,
         valueRange = valueRange,
+        enabled = enabled,
         modifier = modifier,
         thumb = {
             Box(
@@ -121,7 +129,11 @@ fun CartaSleekSlider(
                     .size(20.dp)
                     .clip(CircleShape)
                     .background(CartaColors.Background)
-                    .border(2.5.dp, CartaColors.Mint, CircleShape)
+                    .border(
+                        2.5.dp,
+                        if (enabled) CartaColors.Mint else CartaColors.TextMuted.copy(alpha = 0.5f),
+                        CircleShape
+                    )
             )
         },
         track = { _ ->
@@ -140,13 +152,17 @@ fun CartaSleekSlider(
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(50))
                         .background(
-                            androidx.compose.ui.graphics.Brush.horizontalGradient(
-                                colors = listOf(
-                                    Color(0xFF0A4F40),
-                                    Color(0xFF139E7C),
-                                    CartaColors.Mint
+                            if (enabled) {
+                                androidx.compose.ui.graphics.Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color(0xFF0A4F40),
+                                        Color(0xFF139E7C),
+                                        CartaColors.Mint
+                                    )
                                 )
-                            )
+                            } else {
+                                androidx.compose.ui.graphics.SolidColor(CartaColors.TextMuted.copy(alpha = 0.35f))
+                            }
                         )
                 )
             }

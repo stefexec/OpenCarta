@@ -600,6 +600,10 @@ class CartaBleManager(private val context: Context) {
         herbTimerSec: Int = _state.value.herbTimerSec
     ) {
         val cur = _state.value
+        if (actionByte == 0xA5 && cur.isConnected && !cur.hasAtomizer) {
+            addLog("SYS", "Blocked START SESH: no atomizer attached")
+            return
+        }
         val slot = targetPresetSlot ?: cur.activeHeatPreset
         val pkt = CartaPackets.buildCcCommand(
             herbTemp = herbTemp,
@@ -674,6 +678,7 @@ class CartaBleManager(private val context: Context) {
 
         when {
             op == 0x99 && b.size == 20 -> {
+                val atomizerAttached = (b[2].toInt() and 0x40) != 0
                 val u = b[3].toInt() and 0xFF
                 val rawPreset = b[4].toInt() and 0x0F
                 val remSec = b[5].toInt() and 0xFF
@@ -685,11 +690,12 @@ class CartaBleManager(private val context: Context) {
                 val ledBright = b[13].toInt() and 0x0F
                 val herbTimer = b[14].toInt() and 0xFF
                 val waxTimer = b[15].toInt() and 0xFF
+                val charging = (b[16].toInt() and 0xFF) != 0
                 val vibe = (b[17].toInt() and 0xF0) ushr 4
                 val lowPower = (b[17].toInt() and 0x0F) != 0
                 val standby = b[18].toInt() and 0xFF
 
-                val key = "$u-$rawPreset-$remSec-$waxTemp-$battery-${b[13].toInt() and 0xFF}-${b[17].toInt() and 0xFF}"
+                val key = "${b[2].toInt() and 0xFF}-$u-$rawPreset-$remSec-$waxTemp-$battery-${b[13].toInt() and 0xFF}-${b[16].toInt() and 0xFF}-${b[17].toInt() and 0xFF}"
                 if (!hideSpam || key != last99Key) {
                     addLog("RX", "${CartaPackets.toHex(b)}  // Status (0x99)")
                     last99Key = key
@@ -698,12 +704,14 @@ class CartaBleManager(private val context: Context) {
                 _state.update {
                     it.copy(
                         unitByte = u,
+                        hasAtomizer = atomizerAttached,
                         activeHeatPreset = if (rawPreset in 1..5) rawPreset else it.activeHeatPreset,
                         remainingSec = remSec,
                         currentTemp = curTemp,
                         herbTemp = herbTemp,
                         waxTemp = waxTemp,
                         batteryPercent = battery,
+                        isCharging = charging,
                         activeLedPreset = ledPreset,
                         ledBrightness = if (ledBright > 0) ledBright else it.ledBrightness,
                         herbTimerSec = herbTimer,

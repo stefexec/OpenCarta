@@ -239,7 +239,7 @@ When reconnecting after a session, the app fetches and clears any un-synced sess
 | :--- | :--- | :--- |
 | `0` | `0x99` | Opcode (`0x99`) |
 | `1` | `0x14` | Total length (`20` bytes) |
-| `2` | `0x40` | Device status / flags (`0x40`) |
+| `2` | `0x40`, `0x00` | **Device Status / Atomizer Flags:** Bit 6 (`0x40`) = Atomizer attached (`0x00` = No atomizer attached) |
 | `3` | `0x22`, `0x11` | **Active Temperature Unit:** `0x22` = **°C**, `0x11` = **°F** |
 | `4` | `0x00`..`0x03`, `0x11` | **Active Heating Preset** (`0x01`–`0x05` = Preset 1–5, `0x00` = manual/unsaved, `0x11` = initial standby) |
 | `5` | `0x00`..`0x37` | **Remaining Session Time (seconds)** (`0x00` when idle; holds `0x37` = 55s during pre-heat, then counts down `54`..`0` once target temp is reached) |
@@ -250,7 +250,7 @@ When reconnecting after a session, the app fetches and clears any un-synced sess
 | `13` | `0x58`, `0x48`, `0x08`, `0x02` | **High nibble:** Active LED Preset (`0` = LEDs Off, `1`–`5` = Preset 1–5)<br>**Low nibble:** LED Brightness (`2` = 20%, `8` = 80%) |
 | `14` | `0xb4` | **Dry Herb Target Timer** (`180` seconds) |
 | `15` | `0x3c`, `0x37` | **Concentrate Target Timer** (`60`s → `55`s) |
-| `16` | `0x00` | Reserved (`0x00`) |
+| `16` | `0x00`, `0x01` | **Charging State:** `0x00` = Unplugged, `0x01` = Plugged in / Charging |
 | `17` | `0x20`, `0x40`, `0x60`, `0x80`, `0xa0`, `0x81` | **High nibble:** Vibration Intensity (`2` = 20%, `4` = 40%, `6` = 60%, `8` = 80%, `a` = 100%)<br>**Low nibble:** Low Power Mode (`0` = Off, `1` = On) |
 | `18` | `0x00`, `0xef`..`0xb4` | **Standby Auto-Off Countdown** (starts at `0xef` = 239 and ticks down by 1 every ~2s when idle; `0x00` during active interaction/session) |
 | `19` | `0x99` | Trailer (`0x99`) |

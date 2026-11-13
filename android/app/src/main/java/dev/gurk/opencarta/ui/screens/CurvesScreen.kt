@@ -94,6 +94,7 @@ fun CurvesScreen(
             runnerState = runnerState,
             isFahrenheit = state.isFahrenheit,
             isConnected = state.isConnected,
+            hasAtomizer = state.hasAtomizer,
             onSelectCurve = onSelectCurve,
             onSetInterpMode = onSetInterpMode,
             onUpdatePoint = onUpdateCurvePoint,

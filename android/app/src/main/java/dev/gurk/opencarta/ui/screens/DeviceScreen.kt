@@ -68,7 +68,7 @@ fun DeviceScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                BatteryBadge(state.batteryPercent, state.isConnected)
+                BatteryBadge(state.batteryPercent, state.isConnected, state.isCharging)
                 CircleActionIcon(
                     icon = Icons.Default.Bluetooth,
                     tint = if (state.isConnected) CartaColors.Mint else CartaColors.TextMuted,
