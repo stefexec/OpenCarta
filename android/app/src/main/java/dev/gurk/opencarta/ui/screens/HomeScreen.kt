@@ -130,12 +130,12 @@ fun HomeScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val modelLabel = remember(state.modelNumber, state.deviceName) {
-                        val combined = "${state.modelNumber} ${state.deviceName}".uppercase()
+                        val model = state.modelNumber.trim().uppercase()
+                        val name = state.deviceName.trim().uppercase()
                         when {
-                            combined.contains("SPORT") -> "SPORT"
-                            combined.contains("CARTA 2") || combined.contains("CARTA2") -> "CARTA 2"
-                            state.modelNumber.isNotBlank() && state.modelNumber != "--" -> state.modelNumber.uppercase()
-                            state.deviceName.isNotBlank() -> state.deviceName.uppercase()
+                            name.contains("CARTA 2") || name.contains("CARTA2") -> "CARTA 2"
+                            model.contains("SPORT") || model == "S3BL" || name.contains("SPORT") -> "SPORT"
+                            name.contains("CARTA") -> "CARTA"
                             else -> "CARTA"
                         }
                     }
