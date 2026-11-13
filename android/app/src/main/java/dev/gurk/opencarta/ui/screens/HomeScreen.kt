@@ -137,16 +137,28 @@ fun HomeScreen(
                 )
 
                 // Sleek Auto-Off / Idle Counter aligned next to Live Temp
+                val maxSleepSec = state.sleepTimeoutSec.coerceAtLeast(1)
+                val idleSec = (state.standbyCountdown * 2.5f).roundToInt().coerceAtMost(maxSleepSec)
                 val idleFraction = when {
                     !state.isConnected -> 0f
+                    state.isSessionActive -> 1f
                     state.standbyCountdown <= 0 -> 1f
-                    else -> (state.standbyCountdown / 239f).coerceIn(0f, 1f)
+                    else -> (idleSec.toFloat() / maxSleepSec.toFloat()).coerceIn(0f, 1f)
                 }
                 val idleText = when {
                     !state.isConnected -> "IDLE --"
                     state.isSessionActive -> "HEATING"
-                    state.standbyCountdown <= 0 -> "ACTIVE"
-                    else -> "IDLE ${state.standbyCountdown}s"
+                    state.standbyCountdown <= 0 && maxSleepSec > 600 -> "IDLE 10:00+"
+                    state.standbyCountdown <= 0 -> {
+                        val m = maxSleepSec / 60
+                        val s = maxSleepSec % 60
+                        "IDLE $m:${s.toString().padStart(2, '0')}"
+                    }
+                    else -> {
+                        val m = idleSec / 60
+                        val s = idleSec % 60
+                        "IDLE $m:${s.toString().padStart(2, '0')}"
+                    }
                 }
                 Column(
                     modifier = Modifier

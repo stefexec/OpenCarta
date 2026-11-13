@@ -252,7 +252,7 @@ When reconnecting after a session, the app fetches and clears any un-synced sess
 | `15` | `0x3c`, `0x37` | **Concentrate Target Timer** (`60`s → `55`s) |
 | `16` | `0x00`, `0x01` | **Charging State:** `0x00` = Unplugged, `0x01` = Plugged in / Charging |
 | `17` | `0x20`, `0x40`, `0x60`, `0x80`, `0xa0`, `0x81` | **High nibble:** Vibration Intensity (`2` = 20%, `4` = 40%, `6` = 60%, `8` = 80%, `a` = 100%)<br>**Low nibble:** Low Power Mode (`0` = Off, `1` = On) |
-| `18` | `0x00`, `0xef`..`0xb4` | **Standby Auto-Off Countdown** (starts at `0xef` = 239 and ticks down by 1 every ~2s when idle; `0x00` during active interaction/session) |
+| `18` | `0x00`, `0xef`..`0xb4` | **Standby Auto-Off Countdown** (starts at `0xef` = 239 and ticks down by 1 every ~2.5s when idle, i.e. 240 ticks ≈ 600s / 10 min; `0x00` during active interaction/session or while >10 min remain) |
 | `19` | `0x99` | Trailer (`0x99`) |
 
 ---
