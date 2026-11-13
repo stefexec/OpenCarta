@@ -551,6 +551,7 @@ class CartaBleManager(private val context: Context) {
         _state.update {
             it.copy(
                 activeHeatPreset = s,
+                isManualHeat = false,
                 waxTemp = preset?.temp ?: it.waxTemp,
                 waxTimerSec = preset?.timeSec ?: it.waxTimerSec
             )
@@ -702,20 +703,25 @@ class CartaBleManager(private val context: Context) {
                 }
 
                 _state.update {
+                    val isManual = rawPreset == 0
+                    val presetSlot = if (rawPreset in 1..5) rawPreset else it.activeHeatPreset
+                    val presetTbl = if (u == 0x11) it.concentratePresetsF else it.concentratePresetsC
+                    val activePreset = if (!isManual) presetTbl[presetSlot] else null
                     it.copy(
                         unitByte = u,
                         hasAtomizer = atomizerAttached,
-                        activeHeatPreset = if (rawPreset in 1..5) rawPreset else it.activeHeatPreset,
+                        activeHeatPreset = presetSlot,
+                        isManualHeat = isManual,
                         remainingSec = remSec,
                         currentTemp = curTemp,
                         herbTemp = herbTemp,
-                        waxTemp = waxTemp,
+                        waxTemp = activePreset?.temp ?: waxTemp,
                         batteryPercent = battery,
                         isCharging = charging,
                         activeLedPreset = ledPreset,
                         ledBrightness = if (ledBright > 0) ledBright else it.ledBrightness,
                         herbTimerSec = herbTimer,
-                        waxTimerSec = waxTimer,
+                        waxTimerSec = activePreset?.timeSec ?: waxTimer,
                         vibeLevel = if (vibe > 0) vibe else it.vibeLevel,
                         lowPowerMode = lowPower,
                         standbyCountdown = standby

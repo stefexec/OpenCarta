@@ -57,8 +57,8 @@ fun HomeScreen(
     } else {
         state.concentratePresetsC[state.activeHeatPreset]
     }
-    val syncedTemp = if (state.isConnected) state.waxTemp else (activePreset?.temp ?: state.waxTemp)
-    val syncedTimer = if (state.isConnected) state.waxTimerSec else (activePreset?.timeSec ?: state.waxTimerSec)
+    val syncedTemp = if (state.isConnected && state.isManualHeat) state.waxTemp else (activePreset?.temp ?: state.waxTemp)
+    val syncedTimer = if (state.isConnected && state.isManualHeat) state.waxTimerSec else (activePreset?.timeSec ?: state.waxTimerSec)
 
     var sliderTemp by remember { mutableIntStateOf(syncedTemp) }
     var sliderTimer by remember { mutableIntStateOf(syncedTimer.coerceIn(10, 120)) }

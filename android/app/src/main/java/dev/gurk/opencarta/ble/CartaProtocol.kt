@@ -120,6 +120,7 @@ data class CartaState(
     val isCharging: Boolean = false,
     val hasAtomizer: Boolean = false,
     val activeHeatPreset: Int = 1, // 1..5 (0 = manual)
+    val isManualHeat: Boolean = false,
     val activeLedPreset: Int = 5,  // 0 = OFF, 1..5
     val ledBrightness: Int = 8,    // 2 = 20%, 8 = 80%
     val herbTimerSec: Int = 180,
