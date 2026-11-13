@@ -1,6 +1,6 @@
 # Focus V Carta Sport — BLE Protocol Reference
 
-Reverse-engineered from `btsnoop_hci_261111_231847.log` captured against a Focus V Carta Sport (`Pfeifi McPfeifengesicht` → renamed to `Pfeifi McDabface`, MAC `a4:c1:38:f6:6d:b7`, Telink Semiconductor BLE SoC).
+Reverse-engineered from `btsnoop_hci_261111_231847.log` captured against a Focus V Carta Sport (Telink Semiconductor BLE SoC).
 
 ---
 
