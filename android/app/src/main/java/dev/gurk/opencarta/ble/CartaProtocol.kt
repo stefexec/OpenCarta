@@ -247,6 +247,28 @@ object CartaPackets {
         )
     }
 
+    fun buildPresetTable66(
+        presets: Map<Int, HeatPreset>,
+        unitByte: Int
+    ): ByteArray {
+        val defaultTemp = if (unitByte == 0x11) 446 else 230
+        val pkt = ByteArray(19)
+        pkt[0] = 0x66.toByte()
+        pkt[1] = 0x13.toByte()
+        for (slot in 1..5) {
+            val p = presets[slot] ?: HeatPreset(defaultTemp, 55)
+            val temp = p.temp.coerceIn(50, 650)
+            val sec = p.timeSec.coerceIn(10, 240)
+            val off = 2 + (slot - 1) * 3
+            pkt[off] = ((temp shr 8) and 0xFF).toByte()
+            pkt[off + 1] = (temp and 0xFF).toByte()
+            pkt[off + 2] = (sec and 0xFF).toByte()
+        }
+        pkt[17] = (unitByte and 0xFF).toByte()
+        pkt[18] = 0x66.toByte()
+        return pkt
+    }
+
     fun buildTimeoutsD1(ledTimeoutSec: Int, sleepTimeoutSec: Int): ByteArray {
         return byteArrayOf(
             0xD1.toByte(), 0x07,

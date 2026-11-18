@@ -623,6 +623,7 @@ class CartaBleManager(private val context: Context) {
             0xAF -> "STOP SESH"
             else -> if (slot == 0) "LIVE TEMP ADJUST" else "SAVE TO PRESET"
         }
+        var presetTablePkt: ByteArray? = null
         _state.update {
             if (actionByte == 0x00 && slot in 1..5) {
                 val isF = cur.isFahrenheit
@@ -635,6 +636,11 @@ class CartaBleManager(private val context: Context) {
                 val nextWaxF = it.concentratePresetsF.toMutableMap().apply { put(slot, HeatPreset(waxF, waxTimerSec)) }
                 val nextHerbC = it.herbPresetsC.toMutableMap().apply { put(slot, HeatPreset(herbC, herbTimerSec)) }
                 val nextHerbF = it.herbPresetsF.toMutableMap().apply { put(slot, HeatPreset(herbF, herbTimerSec)) }
+
+                presetTablePkt = CartaPackets.buildPresetTable66(
+                    presets = if (isF) nextWaxF else nextWaxC,
+                    unitByte = cur.unitByte
+                )
 
                 val isCurrentSlot = slot == it.activeHeatPreset
                 it.copy(
@@ -657,6 +663,9 @@ class CartaBleManager(private val context: Context) {
                     herbTimerSec = herbTimerSec
                 )
             }
+        }
+        presetTablePkt?.let {
+            enqueuePacket(it, "SAVE PRESET TABLE (0x66, P$slot=${waxTemp}°/${waxTimerSec}s)")
         }
         enqueuePacket(pkt, "$label (${waxTemp}°, ${waxTimerSec}s, P$slot)")
     }
@@ -800,9 +809,18 @@ class CartaBleManager(private val context: Context) {
                 }
                 addLog("RX", "${CartaPackets.toHex(b)}  // Preset Table (0x${op.toString(16)})")
                 _state.update {
+                    val active = map[it.activeHeatPreset]
                     when (op) {
-                        0x22 -> it.copy(concentratePresetsC = map)
-                        0x33 -> it.copy(concentratePresetsF = map)
+                        0x22 -> it.copy(
+                            concentratePresetsC = map,
+                            waxTemp = if (!it.isManualHeat && !it.isFahrenheit && active != null) active.temp else it.waxTemp,
+                            waxTimerSec = if (!it.isManualHeat && !it.isFahrenheit && active != null) active.timeSec else it.waxTimerSec
+                        )
+                        0x33 -> it.copy(
+                            concentratePresetsF = map,
+                            waxTemp = if (!it.isManualHeat && it.isFahrenheit && active != null) active.temp else it.waxTemp,
+                            waxTimerSec = if (!it.isManualHeat && it.isFahrenheit && active != null) active.timeSec else it.waxTimerSec
+                        )
                         0x44 -> it.copy(herbPresetsC = map)
                         0x55 -> it.copy(herbPresetsF = map)
                         else -> it

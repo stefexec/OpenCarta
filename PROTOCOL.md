@@ -42,7 +42,7 @@ All standard command and notification packets (except the `dd 01 ...` high-rate 
 +---------+---------+------------------------+---------+
 ```
 
-- **Byte 0 (`Opcode`):** Packet type identifier (`0x11`, `0x22`, `0x33`, `0x44`, `0x55`, `0x82`, `0x99`, `0xaa`, `0xac`, `0xaf`, `0xcc`, `0xce`, `0xd1`, `0xd2`, `0xdd`, `0xe0`–`0xea`, `0xfa`, `0xfc`, `0xfd`).
+- **Byte 0 (`Opcode`):** Packet type identifier (`0x11`, `0x22`, `0x33`, `0x44`, `0x55`, `0x66`, `0x82`, `0x99`, `0xaa`, `0xac`, `0xaf`, `0xcc`, `0xce`, `0xd1`, `0xd2`, `0xdd`, `0xe0`–`0xea`, `0xfa`, `0xfc`, `0xfd`).
 - **Byte 1 (`Length`):** Total packet length in bytes, **including** `Byte 0` and the trailing byte.
 - **Last Byte (`Byte[Length - 1]`):** Repeats `Byte 0` as an end-of-frame marker.
 - **Endianness:** Multi-byte numeric fields (temperatures, timers, counters, year) are **big-endian** (`uint16` or `uint32`).
@@ -168,6 +168,20 @@ Used to adjust target temperatures/timers, save them to a preset slot, start a h
 | `13` | `0x00`, `0xa5`, `0xaf` | **Session Action:**<br>• `0x00` = Configure / save preset only<br>• **`0xa5` = Start Session**<br>• **`0xaf` = Stop / Cancel Session** |
 | `14` | `0x00` | Reserved (`0x00`) |
 | `15` | `0xcc` | Trailer (`0xcc`) |
+
+---
+
+### 3.4b Save Concentrate Preset Table to Flash (`0x66`, 19 bytes)
+
+Persists all 5 concentrate preset slots (`1..5`) into the Carta's flash memory (whereas `0xcc` alone only updates the live heating register). The Carta automatically converts and stores the complementary unit table (`0x22` ↔ `0x33`).
+
+```text
+66 13 [T1_hi T1_lo S1] [T2_hi T2_lo S2] [T3_hi T3_lo S3] [T4_hi T4_lo S4] [T5_hi T5_lo S5] [Unit] 66
+```
+
+- `Bytes 2..16`: Five 3-byte entries (`uint16` big-endian temperature + `uint8` duration in seconds) for Slots 1–5.
+- `Byte 17`: Active unit (`0x22` = °C, `0x11` = °F).
+- `Byte 18`: Trailer (`0x66`).
 
 ---
 
