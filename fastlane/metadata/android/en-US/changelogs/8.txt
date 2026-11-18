@@ -1,0 +1,3 @@
+- Persisted heat preset tables (0x66) directly to Carta flash memory so edited presets survive reconnects and reboots
+- Synced active target temperature/timer immediately upon receiving 0x22/0x33 preset tables and when switching presets (including herb presets)
+- Added local preset caching in SharedPreferences so saved presets display immediately even before connecting

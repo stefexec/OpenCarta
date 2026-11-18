@@ -54,6 +54,12 @@ class CartaBleManager(private val context: Context) {
     private val _state = MutableStateFlow(CartaState())
     val state: StateFlow<CartaState> = _state.asStateFlow()
 
+    private val presetPrefs = context.getSharedPreferences("opencarta_presets", Context.MODE_PRIVATE)
+
+    init {
+        loadCachedPresets()
+    }
+
     private val _scannedDevices = MutableStateFlow<List<ScannedDevice>>(emptyList())
     val scannedDevices: StateFlow<List<ScannedDevice>> = _scannedDevices.asStateFlow()
 
@@ -87,6 +93,77 @@ class CartaBleManager(private val context: Context) {
     private var isScanning = false
     private val discoveredMap = LinkedHashMap<String, Pair<ScannedDevice, Long>>()
     private var pruneJob: Job? = null
+
+    private fun encodePresetMap(map: Map<Int, HeatPreset>): String {
+        val obj = org.json.JSONObject()
+        map.forEach { (slot, preset) ->
+            obj.put(
+                slot.toString(),
+                org.json.JSONObject()
+                    .put("temp", preset.temp)
+                    .put("sec", preset.timeSec)
+            )
+        }
+        return obj.toString()
+    }
+
+    private fun decodePresetMap(json: String?): Map<Int, HeatPreset>? {
+        if (json.isNullOrBlank()) return null
+        return try {
+            val obj = org.json.JSONObject(json)
+            val out = mutableMapOf<Int, HeatPreset>()
+            obj.keys().forEach { k ->
+                val slot = k.toIntOrNull() ?: return@forEach
+                val item = obj.getJSONObject(k)
+                out[slot] = HeatPreset(item.getInt("temp"), item.getInt("sec"))
+            }
+            out.ifEmpty { null }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun saveCachedPresets() {
+        val s = _state.value
+        presetPrefs.edit()
+            .putInt("unitByte", s.unitByte)
+            .putInt("activeHeatPreset", s.activeHeatPreset)
+            .putString("waxC", encodePresetMap(s.concentratePresetsC))
+            .putString("waxF", encodePresetMap(s.concentratePresetsF))
+            .putString("herbC", encodePresetMap(s.herbPresetsC))
+            .putString("herbF", encodePresetMap(s.herbPresetsF))
+            .apply()
+    }
+
+    private fun loadCachedPresets() {
+        val unit = presetPrefs.getInt("unitByte", 0x22)
+        val slot = presetPrefs.getInt("activeHeatPreset", 1).coerceIn(1, 5)
+        val waxC = decodePresetMap(presetPrefs.getString("waxC", null))
+        val waxF = decodePresetMap(presetPrefs.getString("waxF", null))
+        val herbC = decodePresetMap(presetPrefs.getString("herbC", null))
+        val herbF = decodePresetMap(presetPrefs.getString("herbF", null))
+        _state.update {
+            val nextWaxC = waxC ?: it.concentratePresetsC
+            val nextWaxF = waxF ?: it.concentratePresetsF
+            val nextHerbC = herbC ?: it.herbPresetsC
+            val nextHerbF = herbF ?: it.herbPresetsF
+            val isF = unit == 0x11
+            val activeWax = (if (isF) nextWaxF else nextWaxC)[slot]
+            val activeHerb = (if (isF) nextHerbF else nextHerbC)[slot]
+            it.copy(
+                unitByte = unit,
+                activeHeatPreset = slot,
+                concentratePresetsC = nextWaxC,
+                concentratePresetsF = nextWaxF,
+                herbPresetsC = nextHerbC,
+                herbPresetsF = nextHerbF,
+                waxTemp = activeWax?.temp ?: it.waxTemp,
+                waxTimerSec = activeWax?.timeSec ?: it.waxTimerSec,
+                herbTemp = activeHerb?.temp ?: it.herbTemp,
+                herbTimerSec = activeHerb?.timeSec ?: it.herbTimerSec
+            )
+        }
+    }
 
     fun isBluetoothEnabled(): Boolean = bluetoothAdapter?.isEnabled == true
 
@@ -549,16 +626,21 @@ class CartaBleManager(private val context: Context) {
     fun selectHeatPreset(slot: Int) {
         val s = slot.coerceIn(1, 5)
         val cur = _state.value
-        val tbl = if (cur.isFahrenheit) cur.concentratePresetsF else cur.concentratePresetsC
-        val preset = tbl[s]
+        val waxTbl = if (cur.isFahrenheit) cur.concentratePresetsF else cur.concentratePresetsC
+        val herbTbl = if (cur.isFahrenheit) cur.herbPresetsF else cur.herbPresetsC
+        val waxPreset = waxTbl[s]
+        val herbPreset = herbTbl[s]
         _state.update {
             it.copy(
                 activeHeatPreset = s,
                 isManualHeat = false,
-                waxTemp = preset?.temp ?: it.waxTemp,
-                waxTimerSec = preset?.timeSec ?: it.waxTimerSec
+                waxTemp = waxPreset?.temp ?: it.waxTemp,
+                waxTimerSec = waxPreset?.timeSec ?: it.waxTimerSec,
+                herbTemp = herbPreset?.temp ?: it.herbTemp,
+                herbTimerSec = herbPreset?.timeSec ?: it.herbTimerSec
             )
         }
+        saveCachedPresets()
         send11Settings(heatPreset = s)
     }
 
@@ -665,6 +747,7 @@ class CartaBleManager(private val context: Context) {
             }
         }
         presetTablePkt?.let {
+            saveCachedPresets()
             enqueuePacket(it, "SAVE PRESET TABLE (0x66, P$slot=${waxTemp}°/${waxTimerSec}s)")
         }
         enqueuePacket(pkt, "$label (${waxTemp}°, ${waxTimerSec}s, P$slot)")
@@ -826,6 +909,7 @@ class CartaBleManager(private val context: Context) {
                         else -> it
                     }
                 }
+                saveCachedPresets()
             }
 
             op in 0xE6..0xEA && b.size == 20 -> {
