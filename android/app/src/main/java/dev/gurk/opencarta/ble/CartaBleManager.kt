@@ -624,12 +624,39 @@ class CartaBleManager(private val context: Context) {
             else -> if (slot == 0) "LIVE TEMP ADJUST" else "SAVE TO PRESET"
         }
         _state.update {
-            it.copy(
-                waxTemp = waxTemp,
-                waxTimerSec = waxTimerSec,
-                herbTemp = herbTemp,
-                herbTimerSec = herbTimerSec
-            )
+            if (actionByte == 0x00 && slot in 1..5) {
+                val isF = cur.isFahrenheit
+                val waxC = if (isF) kotlin.math.round((waxTemp - 32) * 5.0 / 9.0).toInt() else waxTemp
+                val waxF = if (isF) waxTemp else kotlin.math.round(waxTemp * 9.0 / 5.0 + 32.0).toInt()
+                val herbC = if (isF) kotlin.math.round((herbTemp - 32) * 5.0 / 9.0).toInt() else herbTemp
+                val herbF = if (isF) herbTemp else kotlin.math.round(herbTemp * 9.0 / 5.0 + 32.0).toInt()
+
+                val nextWaxC = it.concentratePresetsC.toMutableMap().apply { put(slot, HeatPreset(waxC, waxTimerSec)) }
+                val nextWaxF = it.concentratePresetsF.toMutableMap().apply { put(slot, HeatPreset(waxF, waxTimerSec)) }
+                val nextHerbC = it.herbPresetsC.toMutableMap().apply { put(slot, HeatPreset(herbC, herbTimerSec)) }
+                val nextHerbF = it.herbPresetsF.toMutableMap().apply { put(slot, HeatPreset(herbF, herbTimerSec)) }
+
+                val isCurrentSlot = slot == it.activeHeatPreset
+                it.copy(
+                    concentratePresetsC = nextWaxC,
+                    concentratePresetsF = nextWaxF,
+                    herbPresetsC = nextHerbC,
+                    herbPresetsF = nextHerbF,
+                    isManualHeat = if (isCurrentSlot) false else it.isManualHeat,
+                    waxTemp = if (isCurrentSlot) waxTemp else it.waxTemp,
+                    waxTimerSec = if (isCurrentSlot) waxTimerSec else it.waxTimerSec,
+                    herbTemp = if (isCurrentSlot) herbTemp else it.herbTemp,
+                    herbTimerSec = if (isCurrentSlot) herbTimerSec else it.herbTimerSec
+                )
+            } else {
+                it.copy(
+                    isManualHeat = if (slot == 0 && actionByte == 0x00) true else it.isManualHeat,
+                    waxTemp = waxTemp,
+                    waxTimerSec = waxTimerSec,
+                    herbTemp = herbTemp,
+                    herbTimerSec = herbTimerSec
+                )
+            }
         }
         enqueuePacket(pkt, "$label (${waxTemp}°, ${waxTimerSec}s, P$slot)")
     }
