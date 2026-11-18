@@ -1,0 +1,1 @@
+- Fixed preset saving in Sesh Preset editor so saved temperature and duration persist across telemetry updates and unit switches
